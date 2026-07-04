@@ -67,6 +67,41 @@ Be direct, clear, and write for non-technical stakeholders. Avoid referencing HT
             else:
                 return text, "No critical UX risks identified."
         except Exception as e:
-            return f"Error running Gemini visual audit: {str(e)}", "Unable to audit UX risks."
+            # Fallback to Groq Llama-3.3 diff-based UI/UX auditor on quota/rate-limits
+            try:
+                from app.services.groq import groq_service
+                
+                fallback_prompt = f"""You are a professional UX/UI Auditor. 
+Analyze the raw code changes (git diff) below to evaluate visual modifications and potential UX risks:
+{git_diff}
+
+Instructions:
+1. Review the code changes.
+2. Identify the visual modifications that will happen in the user interface.
+3. Flag any critical UX risks (e.g. elements overlapping, layout shifts, mobile responsiveness issues, hidden interactive elements).
+
+Provide your feedback in exactly two sections, separated by a '---' line:
+Section 1: Detailed list of visual modifications in bullet points.
+Section 2: Detailed list of UX risks or issues introduced (if none, write 'No critical UX risks identified.').
+
+Be direct, clear, and write for non-technical stakeholders. Avoid referencing HTML code or styling classes.
+"""
+                completion = groq_service.client.chat.completions.create(
+                    messages=[
+                        {"role": "user", "content": fallback_prompt}
+                    ],
+                    model="llama-3.3-70b-versatile",
+                    temperature=0.2
+                )
+                text = completion.choices[0].message.content.strip()
+                if "---" in text:
+                    parts = text.split("---", 1)
+                    changes = parts[0].strip()
+                    risks = parts[1].strip()
+                    return changes, risks
+                else:
+                    return text, "No critical UX risks identified."
+            except Exception as fallback_err:
+                return f"Error running Gemini visual audit: {str(e)}. Fallback failed: {str(fallback_err)}", "Unable to audit UX risks."
 
 gemini_service = GeminiService()
