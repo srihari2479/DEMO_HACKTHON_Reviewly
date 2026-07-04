@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { 
   GitPullRequest, 
   Clock, 
@@ -19,13 +20,21 @@ import {
   Users
 } from 'lucide-react';
 
+// Custom GitHub Brand SVG Icon (Avoids lucide dependency warnings)
 const Github = (props) => (
   <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
   </svg>
 );
 
-// Fallback seed data so the UI remains interactive and functional even if backend is starting up.
+// Initialize Supabase Client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const BACKEND_URL = "http://localhost:7860";
+
+// Fallback seed data in case Supabase is blank
 const SEED_AUDITS = [
   {
     id: "502d3641-abbf-4bfc-b478-40c43e4a9b64",
@@ -50,48 +59,11 @@ index 838afd..92fa1b 100644
     ai_risks: "* Text Typo/Display Error: The link contains an escaped double single quote \"Don''t\" which displays incorrectly.\n* Button Color Inconsistency: The new blue Google button contrast differs from the existing dark button layout.",
     reviewer_comments: null,
     created_at: new Date(Date.now() - 3600000).toISOString()
-  },
-  {
-    id: "mock-id-2",
-    pr_number: 103,
-    title: "feat: Update dashboard statistics layout",
-    author: "alex_chen",
-    repository: "Reviewly/frontend",
-    status: "approved",
-    git_diff: "diff --git a/src/Dashboard.jsx\n+ <div className=\"metrics-grid\">14 changes...</div>",
-    before_screenshot_url: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=600",
-    after_screenshot_url: "https://images.unsplash.com/photo-1541462608141-2ff01dd914e0?w=600",
-    ai_summary: "* Redesigned the primary statistics panel with standard spacing.\n* Changed metric widgets border borders to glowing elements.",
-    ai_risks: "No critical UX risks identified.",
-    reviewer_comments: "Looks neat and fits the style guide perfectly!",
-    created_at: new Date(Date.now() - 7200000).toISOString()
-  },
-  {
-    id: "mock-id-3",
-    pr_number: 102,
-    title: "fix: Broken signup form inputs layout shift",
-    author: "maria_r",
-    repository: "Reviewly/backend",
-    status: "changes_requested",
-    git_diff: "diff --git a/components/SignUp.js\n- margin-bottom: 24px;\n+ margin-bottom: 8px;",
-    before_screenshot_url: "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=600",
-    after_screenshot_url: "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600",
-    ai_summary: "* Tightened margins on registration text inputs.\n* Repositioned signup error text to be close to fields.",
-    ai_risks: "* Spacing issue: The password mismatch warning shifts labels when rendering dynamically.",
-    reviewer_comments: "Input layout shifts are still occurring on mobile layout viewport checks.",
-    created_at: new Date(Date.now() - 14400000).toISOString()
   }
 ];
 
-const BACKEND_URL = "http://localhost:7860";
-
 export default function App() {
-  const [user, setUser] = useState({
-    name: 'Alex Chen',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-    role: 'Lead Developer'
-  });
-  
+  const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'prs', 'history', 'settings'
   const [audits, setAudits] = useState(SEED_AUDITS);
   const [selectedAuditId, setSelectedAuditId] = useState(SEED_AUDITS[0].id);
@@ -111,9 +83,75 @@ export default function App() {
   const [simLogs, setSimLogs] = useState([]);
   const [isSimulating, setIsSimulating] = useState(false);
 
-  // Load audits from FastAPI on startup
+  // 1. Listen to Supabase Auth state changes
+  useEffect(() => {
+    // Check active session on page mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleAuthChange(session);
+    });
+
+    // Listen for auth state transitions
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleAuthChange(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleAuthChange = (session) => {
+    if (session?.user) {
+      setUser({
+        name: session.user.user_metadata.full_name || session.user.user_metadata.user_name || session.user.email,
+        avatar: session.user.user_metadata.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150",
+        role: 'Reviewer',
+        email: session.user.email
+      });
+    } else {
+      setUser(null);
+    }
+  };
+
+  const loginWithGitHub = async () => {
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+    } catch (e) {
+      console.error("Authentication trigger failed.", e);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setIsProfileOpen(false);
+  };
+
+  // 2. Fetch audits from backend API
   useEffect(() => {
     fetchAudits();
+  }, []);
+
+  // 3. Connect Supabase Realtime to update dashboard lists automatically on insert/update
+  useEffect(() => {
+    const channel = supabase
+      .channel('realtime_pr_audits_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pr_audits' },
+        (payload) => {
+          console.log('Real-time database update detected:', payload);
+          fetchAudits(); // Reload active pull requests list
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchAudits = async () => {
@@ -122,7 +160,10 @@ export default function App() {
       const data = await response.json();
       if (data.status === "success" && data.data.length > 0) {
         setAudits(data.data);
-        setSelectedAuditId(data.data[0].id);
+        // Retain selection if valid, else select first
+        setSelectedAuditId(prevId => {
+          return data.data.some(a => a.id === prevId) ? prevId : data.data[0].id;
+        });
       }
     } catch (e) {
       console.warn("Backend API not reachable. Using fallback seed data.", e);
@@ -135,7 +176,7 @@ export default function App() {
   const handleReviewSubmit = async (status) => {
     if (!activeAudit) return;
     
-    // Update local state immediately for instant feedback
+    // Update local state immediately for snappy response
     const updatedAudits = audits.map(a => {
       if (a.id === activeAudit.id) {
         return { ...a, status, reviewer_comments: reviewComments };
@@ -146,7 +187,7 @@ export default function App() {
     setReviewComments("");
 
     try {
-      await fetch(`${BACKEND_URL}/api/pr/${activeAudit.id}/review`, {
+      const response = await fetch(`${BACKEND_URL}/api/pr/${activeAudit.id}/review`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -154,6 +195,10 @@ export default function App() {
           reviewer_comments: reviewComments
         })
       });
+      const data = await response.json();
+      if (data.status === "success") {
+        fetchAudits(); // Re-sync
+      }
     } catch (e) {
       console.error("Failed to sync review update with backend database.", e);
     }
@@ -163,10 +208,10 @@ export default function App() {
   const triggerSimulation = async () => {
     setIsSimulating(true);
     setSimLogs([
-      "🚀 [Simulator] Developer triggered `git push origin feature/pricing-page`",
-      "📦 [Simulator] Pull Request #105 created on GitHub...",
-      "🔗 [Simulator] Vercel generated preview deployment: https://reviewly-preview-105.vercel.app",
-      "📡 [Simulator] Triggering Reviewly Webhook..."
+      "🚀 [Simulator] Developer pushed changes to `feature/pricing-page`",
+      "📦 [Simulator] PR #105 generated on GitHub repository...",
+      "🔗 [Simulator] Vercel staging preview generated: https://reviewly-preview-105.vercel.app",
+      "📡 [Simulator] Triggering Reviewly Audit Pipeline..."
     ]);
 
     const payload = {
@@ -191,8 +236,8 @@ index 92fa1b..73ac0a 100644
     };
 
     try {
-      setSimLogs(prev => [...prev, "🤖 [Simulator] Running Groq diff parser..."]);
-      setSimLogs(prev => [...prev, "📸 [Simulator] Running Gemini multimodal visual auditor..."]);
+      setSimLogs(prev => [...prev, "🤖 [Simulator] Querying Groq Llama-3.3 diff parser..."]);
+      setSimLogs(prev => [...prev, "📸 [Simulator] Querying Gemini 2.5 multimodal UI auditor..."]);
       
       const response = await fetch(`${BACKEND_URL}/api/pr/submit`, {
         method: "POST",
@@ -206,23 +251,25 @@ index 92fa1b..73ac0a 100644
           ...prev,
           "💾 [Simulator] PR Audit written to Supabase successfully!",
           "💬 [Simulator] Slack message alert triggered!",
-          "🎉 [Simulator] Process completed successfully! Refreshing portal..."
+          "🎉 [Simulator] Process completed successfully! Real-time DB listeners updated UI."
         ]);
-        await fetchAudits();
-        setSelectedAuditId(data.audit.id);
-        setActiveTab('dashboard');
+        // Note: Real-time DB listener handles fetchAudits() automatically,
+        // but we trigger selection change after a short pause.
+        setTimeout(() => {
+          setSelectedAuditId(data.audit.id);
+          setActiveTab('dashboard');
+        }, 500);
       } else {
         setSimLogs(prev => [...prev, "❌ Error: Failed to submit simulated audit payload."]);
       }
     } catch (e) {
-      // Fallback manual injection in case API is offline
       setSimLogs(prev => [
         ...prev,
         "⚠️ Backend API not reachable. Simulating AI analysis locally...",
-        "💾 Local database fallback record created."
+        "💾 Local database fallback record injected."
       ]);
       const mockNewAudit = {
-        id: "simulation-audit-uuid",
+        id: `simulated-id-${Date.now()}`,
         pr_number: 105,
         title: "Redesign Pricing Tiers and Add Toggle Button",
         author: "dev_alex",
@@ -283,86 +330,92 @@ index 92fa1b..73ac0a 100644
           <span>Reviewly</span>
         </div>
         
-        <nav className="nav-links">
-          <button 
-            className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('dashboard'); setSelectedAuditId(audits[0]?.id); }}
-          >
-            Dashboard
-          </button>
-          <button 
-            className={`nav-link ${activeTab === 'prs' ? 'active' : ''}`}
-            onClick={() => setActiveTab('prs')}
-          >
-            PRs
-          </button>
-          <button 
-            className={`nav-link ${activeTab === 'history' ? 'active' : ''}`}
-            onClick={() => setActiveTab('history')}
-          >
-            History
-          </button>
-          <button 
-            className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
-          >
-            Settings
-          </button>
-        </nav>
+        {user && (
+          <nav className="nav-links">
+            <button 
+              className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => { setActiveTab('dashboard'); }}
+            >
+              Dashboard
+            </button>
+            <button 
+              className={`nav-link ${activeTab === 'prs' ? 'active' : ''}`}
+              onClick={() => setActiveTab('prs')}
+            >
+              PRs
+            </button>
+            <button 
+              className={`nav-link ${activeTab === 'history' ? 'active' : ''}`}
+              onClick={() => setActiveTab('history')}
+            >
+              History
+            </button>
+            <button 
+              className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              Settings
+            </button>
+          </nav>
+        )}
 
         <div className="nav-profile">
-          {/* Notification bell */}
-          <button 
-            className="icon-button"
-            onClick={() => {
-              setIsNotificationsOpen(!isNotificationsOpen);
-              setIsProfileOpen(false);
-            }}
-          >
-            <Bell size={20} />
-            <span className="badge-dot"></span>
-          </button>
+          {user && (
+            <>
+              {/* Notification bell */}
+              <button 
+                className="icon-button"
+                onClick={() => {
+                  setIsNotificationsOpen(!isNotificationsOpen);
+                  setIsProfileOpen(false);
+                }}
+              >
+                <Bell size={20} />
+                <span className="badge-dot"></span>
+              </button>
 
-          {isNotificationsOpen && (
-            <div className="dropdown-menu notification-dropdown">
-              <div style={{ padding: '8px 12px', fontWeight: 600, borderBottom: '1px solid var(--panel-border)', fontSize: '13px' }}>
-                Recent Alerts
-              </div>
-              {notifications.map(n => (
-                <div key={n.id} className="notification-item">
-                  <div className="notification-content">
-                    <span className="notification-title">{n.title}</span>
-                    <span className="notification-time">{n.time}</span>
+              {isNotificationsOpen && (
+                <div className="dropdown-menu notification-dropdown">
+                  <div style={{ padding: '8px 12px', fontWeight: 600, borderBottom: '1px solid var(--panel-border)', fontSize: '13px' }}>
+                    Recent Alerts
+                  </div>
+                  {notifications.map(n => (
+                    <div key={n.id} className="notification-item">
+                      <div className="notification-content">
+                        <span className="notification-title">{n.title}</span>
+                        <span className="notification-time">{n.time}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Profile pic */}
+              <img 
+                src={user.avatar} 
+                alt="Profile avatar" 
+                className="profile-avatar"
+                onClick={() => {
+                  setIsProfileOpen(!isProfileOpen);
+                  setIsNotificationsOpen(false);
+                }}
+              />
+
+              {isProfileOpen && (
+                <div className="dropdown-menu">
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--panel-border)' }}>
+                    <div style={{ fontWeight: 600, fontSize: '13px' }}>{user.name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{user.role}</div>
+                  </div>
+                  <div className="dropdown-item" onClick={() => setActiveTab('settings')}>Profile Settings</div>
+                  <div className="dropdown-item" onClick={() => setActiveTab('settings')}>Billing</div>
+                  <div className="dropdown-divider"></div>
+                  <div className="dropdown-item" style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={handleSignOut}>
+                    <LogOut size={14} /> Log Out
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Profile pic */}
-          <img 
-            src={user.avatar} 
-            alt="Profile avatar" 
-            className="profile-avatar"
-            onClick={() => {
-              setIsProfileOpen(!isProfileOpen);
-              setIsNotificationsOpen(false);
-            }}
-          />
-
-          {isProfileOpen && (
-            <div className="dropdown-menu">
-              <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--panel-border)' }}>
-                <div style={{ fontWeight: 600, fontSize: '13px' }}>{user.name}</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{user.role}</div>
-              </div>
-              <div className="dropdown-item" onClick={() => setActiveTab('settings')}>Profile Settings</div>
-              <div className="dropdown-item" onClick={() => setActiveTab('settings')}>Billing</div>
-              <div className="dropdown-divider"></div>
-              <div className="dropdown-item" style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => setUser(null)}>
-                <LogOut size={14} /> Log Out
-              </div>
-            </div>
+              )}
+            </>
           )}
         </div>
       </header>
@@ -376,11 +429,7 @@ index 92fa1b..73ac0a 100644
             <h2>Sign in to Reviewly</h2>
             <button 
               className="btn-primary"
-              onClick={() => setUser({
-                name: 'Alex Chen',
-                avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-                role: 'Lead Developer'
-              })}
+              onClick={loginWithGitHub}
             >
               <Github size={20} /> Login with GitHub
             </button>
@@ -469,7 +518,7 @@ index 92fa1b..73ac0a 100644
                             }`}>
                               {audit.status === 'approved' ? 'Approved' : audit.status === 'changes_requested' ? 'Changes Requested' : 'In Review'}
                             </span>
-                            <span className="time-text">1 hr ago</span>
+                            <span className="time-text">Active</span>
                           </div>
                         </div>
                       </div>
@@ -513,9 +562,7 @@ index 92fa1b..73ac0a 100644
                       />
 
                       {/* Slider divider line handle */}
-                      <div className="slider-handle" style={{ left: `${sliderPosition}%` }}>
-                        <span>&lt;&gt;</span>
-                      </div>
+                      <div className="slider-handle" style={{ left: `${sliderPosition}%` }}></div>
                     </div>
                   ) : (
                     <div style={{ height: '360px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
