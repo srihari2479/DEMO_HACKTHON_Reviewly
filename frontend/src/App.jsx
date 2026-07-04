@@ -312,7 +312,7 @@ export default function App() {
   ];
 
   return (
-    <div className={`app-container ${user === null ? 'login-page-active' : ''}`}>
+    <div className="app-container">
       {/* Navigation bar */}
       <Navbar 
         user={user}

@@ -8,25 +8,40 @@ const GithubIcon = (props) => (
 
 export default function Login({ loginWithGitHub }) {
   return (
-    <div className="login-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 120px)', background: 'transparent' }}>
+    <div className="login-container" style={{ position: 'relative', minHeight: 'calc(100vh - 120px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Full-viewport Background Image (covers navbar and container) */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: 'url(/login_page_bg.jpeg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        zIndex: -1,
+        pointerEvents: 'none'
+      }} />
+
       {/* Center login card */}
       <div 
         className="login-card glass-panel" 
         style={{ 
           zIndex: 1, 
-          background: 'rgba(11, 21, 41, 0.82)', /* glassy dark navy 82% opacity */
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderColor: 'rgba(20, 184, 166, 0.25)',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.65), 0 0 30px rgba(20, 184, 166, 0.15)',
-          padding: '44px',
+          background: 'rgba(10, 15, 30, 0.82)', /* glassy dark navy 82% opacity */
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderColor: 'rgba(20, 184, 166, 0.28)',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.65), 0 0 30px rgba(20, 184, 166, 0.18)',
+          borderRadius: '20px',
+          padding: '48px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           gap: '24px',
           width: '100%',
-          maxWidth: '440px',
-          borderRadius: '18px'
+          maxWidth: '440px'
         }}
       >
         <img 
@@ -37,7 +52,7 @@ export default function Login({ loginWithGitHub }) {
             height: '60px', 
             objectFit: 'contain', 
             marginBottom: '4px',
-            filter: 'drop-shadow(0 0 10px rgba(20, 184, 166, 0.3))'
+            filter: 'drop-shadow(0 0 10px rgba(20, 184, 166, 0.35))'
           }} 
         />
         
