@@ -36,6 +36,7 @@ export default function App() {
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(true);
   const [simLogs, setSimLogs] = useState([]);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isConsoleModalOpen, setIsConsoleModalOpen] = useState(false);
 
   // Real-time repository selection states
   const [repos, setRepos] = useState([]);
@@ -228,6 +229,7 @@ export default function App() {
   };
 
   const triggerSimulation = async () => {
+    setIsConsoleModalOpen(true);
     setIsSimulating(true);
     setSimLogs([
       `🚀 [Console] Connecting to GitHub API for repository: ${selectedRepo}...`,
@@ -320,6 +322,8 @@ export default function App() {
             repos={repos}
             selectedRepo={selectedRepo}
             setSelectedRepo={setSelectedRepo}
+            isConsoleModalOpen={isConsoleModalOpen}
+            setIsConsoleModalOpen={setIsConsoleModalOpen}
           />
 
           {activeTab === 'dashboard' && (
