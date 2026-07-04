@@ -62,6 +62,60 @@ export default function App() {
   const [simLogs, setSimLogs] = useState([]);
   const [isSimulating, setIsSimulating] = useState(false);
 
+  // Real-time repository selection states
+  const [repos, setRepos] = useState([]);
+  const [selectedRepo, setSelectedRepo] = useState("srihari2479/DEMO_HACKTHON_Reviewly");
+  const [prNumber, setPrNumber] = useState(1);
+  const [loadingRepos, setLoadingRepos] = useState(true);
+  const [errorRepos, setErrorRepos] = useState(null);
+
+  const fetchGitHubRepos = async () => {
+    setLoadingRepos(true);
+    setErrorRepos(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const providerToken = session?.provider_token;
+      
+      if (!providerToken) {
+        setErrorRepos("GitHub Access Token not found. Login again.");
+        setLoadingRepos(false);
+        return;
+      }
+
+      const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=15', {
+        headers: {
+          'Authorization': `Bearer ${providerToken}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        const formatted = data.map(r => ({
+          id: r.id,
+          name: r.name,
+          owner: r.owner.login,
+          fullName: `${r.owner.login}/${r.name}`,
+          stars: r.stargazers_count,
+          forks: r.forks_count,
+          monitored: r.name.toLowerCase().includes('reviewly') || r.name.toLowerCase().includes('hackthon'),
+          language: r.language || 'HTML',
+          url: r.html_url
+        }));
+        setRepos(formatted);
+        if (formatted.length > 0) {
+          setSelectedRepo(formatted[0].fullName);
+        }
+      } else {
+        setErrorRepos("Failed to parse repos from GitHub.");
+      }
+    } catch (e) {
+      setErrorRepos(`Failed to connect to GitHub: ${e.message}`);
+    } finally {
+      setLoadingRepos(false);
+    }
+  };
+
   // 1. Listen to Supabase Auth state changes
   useEffect(() => {
     // Check active session on page mount
@@ -85,8 +139,10 @@ export default function App() {
         role: 'Reviewer',
         email: session.user.email
       });
+      fetchGitHubRepos();
     } else {
       setUser(null);
+      setRepos([]);
     }
   };
 
@@ -190,42 +246,24 @@ export default function App() {
     }
   };
 
-  // Mock Developer PR submission trigger (hits actual FastAPI endpoint `/submit`)
   const triggerSimulation = async () => {
     setIsSimulating(true);
     setSimLogs([
-      "🚀 [Simulator] Developer pushed changes to `feature/pricing-page`",
-      "📦 [Simulator] PR #105 generated on GitHub repository...",
-      "🔗 [Simulator] Vercel staging preview generated: https://reviewly-preview-105.vercel.app",
-      "📡 [Simulator] Triggering Reviewly Audit Pipeline..."
+      `🚀 [Console] Connecting to GitHub API for repository: ${selectedRepo}...`,
+      `📦 [Console] Locating Pull Request #${prNumber}...`,
+      `📡 [Console] Fetching raw code patch & metadata from GitHub...`
     ]);
 
     const payload = {
-      pr_number: 105,
-      title: "Redesign Pricing Tiers and Add Toggle Button",
-      author: "dev_alex",
-      repository: "Reviewly/frontend",
-      git_diff: `diff --git a/components/Pricing.js b/components/Pricing.js
-index 92fa1b..73ac0a 100644
---- a/components/Pricing.js
-+++ b/components/Pricing.js
-@@ -12,4 +12,12 @@ export default function Pricing() {
--      <h3>Premium Plan: $49/mo</h3>
-+      <div className="toggle-pricing">
-+        <span>Monthly</span><button className="bg-teal-500">Toggle</button><span>Annually</span>
-+      </div>
-+      <h3>Premium Plan: $39/mo (Billed Annually)</h3>
-+      <a href="/checkout" className="btn mt-4">Get Started</a>`,
-      before_screenshot_url: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=600",
-      after_screenshot_url: "https://images.unsplash.com/photo-1541462608141-2ff01dd914e0?w=600",
-      portal_base_url: window.location.origin
+      repository: selectedRepo,
+      pr_number: parseInt(prNumber)
     };
 
     try {
-      setSimLogs(prev => [...prev, "🤖 [Simulator] Querying Groq Llama-3.3 diff parser..."]);
-      setSimLogs(prev => [...prev, "📸 [Simulator] Querying Gemini 2.5 multimodal UI auditor..."]);
+      setSimLogs(prev => [...prev, "🤖 [Console] Querying Groq Llama-3.3 diff summarizer..."]);
+      setSimLogs(prev => [...prev, "📸 [Console] Querying Gemini 2.5 multimodal UI auditor..."]);
       
-      const response = await fetch(`${BACKEND_URL}/api/pr/submit`, {
+      const response = await fetch(`${BACKEND_URL}/api/pr/audit-repo`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -235,9 +273,9 @@ index 92fa1b..73ac0a 100644
       if (data.status === "success") {
         setSimLogs(prev => [
           ...prev,
-          "💾 [Simulator] PR Audit written to Supabase successfully!",
-          "💬 [Simulator] Slack message alert triggered!",
-          "🎉 [Simulator] Process completed successfully! Live database updated."
+          "💾 [Console] PR Audit successfully saved in Supabase database!",
+          "💬 [Console] Slack card alert successfully broadcast!",
+          "🎉 [Console] Live audit execution complete!"
         ]);
         
         await fetchAudits();
@@ -247,7 +285,9 @@ index 92fa1b..73ac0a 100644
           setActiveTab('dashboard');
         }, 500);
       } else {
-        setSimLogs(prev => [...prev, "❌ Error: Failed to submit simulated audit payload."]);
+        const errorDetail = data.detail || "Failed to fetch PR details from GitHub.";
+        setSimLogs(prev => [...prev, `❌ Error: ${errorDetail}`]);
+        alert(`Audit Trigger Failed: ${errorDetail}\n\nHint: Verify that the repo name is correct and the PR number exists on GitHub!`);
       }
     } catch (e) {
       setSimLogs(prev => [
@@ -296,6 +336,11 @@ index 92fa1b..73ac0a 100644
             isSimulating={isSimulating}
             triggerSimulation={triggerSimulation}
             simLogs={simLogs}
+            repos={repos}
+            selectedRepo={selectedRepo}
+            setSelectedRepo={setSelectedRepo}
+            prNumber={prNumber}
+            setPrNumber={setPrNumber}
           />
 
           {activeTab === 'dashboard' && (
@@ -332,7 +377,13 @@ index 92fa1b..73ac0a 100644
           )}
 
           {activeTab === 'repos' && (
-            <Repositories user={user} />
+            <Repositories 
+              repos={repos}
+              setRepos={setRepos}
+              loading={loadingRepos}
+              errorMsg={errorRepos}
+              user={user}
+            />
           )}
 
           {activeTab === 'settings' && (
