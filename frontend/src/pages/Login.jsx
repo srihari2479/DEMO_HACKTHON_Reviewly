@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 const GithubIcon = (props) => (
   <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -7,28 +7,54 @@ const GithubIcon = (props) => (
 );
 
 export default function Login({ loginWithGitHub }) {
-  return (
-    <div className="login-container" style={{ position: 'relative', minHeight: 'calc(100vh - 120px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Full-viewport Background Image (covers navbar and container) */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundImage: 'url(/login_page_bg.jpeg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        zIndex: -1,
-        pointerEvents: 'none'
-      }} />
+  // Dynamically configure the body background image for the login page
+  useEffect(() => {
+    const originalBg = document.body.style.backgroundImage;
+    const originalBgColor = document.body.style.backgroundColor;
+    const originalBgSize = document.body.style.backgroundSize;
+    const originalBgPos = document.body.style.backgroundPosition;
+    const originalBgRep = document.body.style.backgroundRepeat;
+    const originalBgAtt = document.body.style.backgroundAttachment;
+    
+    document.body.style.backgroundImage = 'url(/login_page_bg.jpeg)';
+    document.body.style.backgroundColor = '#0a0f1e';
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundRepeat = 'no-repeat';
+    document.body.style.backgroundAttachment = 'fixed';
+    
+    return () => {
+      // Revert styles when unmounting
+      document.body.style.backgroundImage = originalBg;
+      document.body.style.backgroundColor = originalBgColor;
+      document.body.style.backgroundSize = originalBgSize;
+      document.body.style.backgroundPosition = originalBgPos;
+      document.body.style.backgroundRepeat = originalBgRep;
+      document.body.style.backgroundAttachment = originalBgAtt;
+    };
+  }, []);
 
+  return (
+    <div 
+      className="login-container" 
+      style={{ 
+        position: 'fixed', 
+        top: '80px', 
+        left: 0, 
+        right: 0, 
+        bottom: 0, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        padding: '20px',
+        margin: 0,
+        zIndex: 1
+      }}
+    >
       {/* Center login card */}
       <div 
         className="login-card glass-panel" 
         style={{ 
-          zIndex: 1, 
           background: 'rgba(10, 15, 30, 0.82)', /* glassy dark navy 82% opacity */
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
@@ -41,15 +67,16 @@ export default function Login({ loginWithGitHub }) {
           alignItems: 'center',
           gap: '24px',
           width: '100%',
-          maxWidth: '440px'
+          maxWidth: '440px',
+          margin: 0
         }}
       >
         <img 
           src="/logo_icon.png" 
           alt="Reviewly Logo Mark" 
           style={{ 
-            width: '60px', 
-            height: '60px', 
+            width: '80px', 
+            height: '80px', 
             objectFit: 'contain', 
             marginBottom: '4px',
             filter: 'drop-shadow(0 0 10px rgba(20, 184, 166, 0.35))'
@@ -78,7 +105,8 @@ export default function Login({ loginWithGitHub }) {
             borderRadius: '24px',
             color: '#0f172a',
             cursor: 'pointer',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            margin: 0
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-1px)';
@@ -106,7 +134,8 @@ export default function Login({ loginWithGitHub }) {
           fontSize: '11px', 
           color: 'var(--status-review-text)', 
           textAlign: 'left', 
-          lineHeight: '1.5' 
+          lineHeight: '1.5',
+          margin: 0
         }}>
           <strong>Prerequisite:</strong> Enable the GitHub auth provider in your Supabase Console under <em>Authentication &gt; Providers</em> before clicking login.
         </div>
