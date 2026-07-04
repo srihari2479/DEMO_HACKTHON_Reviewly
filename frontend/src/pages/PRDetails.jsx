@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import DiffSlider from '../components/DiffSlider';
-import { CheckCircle2, AlertTriangle, Shield, User, CornerDownRight } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Shield, User, CornerDownRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function PRDetails({
   audits = [],
@@ -13,47 +13,133 @@ export default function PRDetails({
   sliderPosition,
   setSliderPosition
 }) {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   return (
-    <div className="dashboard-grid">
-      {/* Left Column: List of PR Audits */}
-      <div className="sidebar-prs glass-panel" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
-        <span className="sidebar-title">Active Audits</span>
-        <div className="pr-list">
+    <div 
+      className="dashboard-grid" 
+      style={{ 
+        gridTemplateColumns: isSidebarCollapsed ? '64px 1fr' : '360px 1fr',
+        transition: 'grid-template-columns 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}
+    >
+      {/* Left Column: Collapsible List of PR Audits */}
+      <div 
+        className="sidebar-prs glass-panel" 
+        style={{ 
+          width: isSidebarCollapsed ? '64px' : '360px',
+          maxHeight: 'calc(100vh - 120px)', 
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        {/* Sidebar Header with Manual Collapse/Expand Button */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+          padding: '16px 12px',
+          borderBottom: '1px solid rgba(255,255,255,0.04)',
+          minHeight: '53px'
+        }}>
+          {!isSidebarCollapsed && (
+            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--primary-teal)' }}>
+              Active Audits
+            </span>
+          )}
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsSidebarCollapsed(!isSidebarCollapsed);
+            }}
+            className="icon-button"
+            style={{ 
+              color: 'var(--text-secondary)',
+              padding: '4px',
+              borderRadius: '6px'
+            }}
+            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+        </div>
+
+        {/* PR Audits List */}
+        <div className="pr-list" style={{ padding: isSidebarCollapsed ? '8px 4px' : '12px', gap: '8px' }}>
           {audits.length > 0 ? (
-            audits.map(audit => (
-              <div 
-                key={audit.id} 
-                className={`pr-item ${selectedAuditId === audit.id ? 'active' : ''}`}
-                onClick={() => setSelectedAuditId(audit.id)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <img 
-                    src={`https://images.unsplash.com/photo-${audit.author === 'dev_sarah' ? '1494790108377-be9c29b29330' : '1535713875002-d1d0cf377fde'}?w=100`} 
-                    alt="avatar" 
-                    className="pr-avatar" 
-                  />
-                  <div className="pr-details" style={{ width: '100%' }}>
-                    <span className="pr-title" style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
-                      {audit.title}
-                    </span>
-                    <span className="pr-repo" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      {audit.repository}
-                    </span>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-                      <span className={`badge ${
-                        audit.status === 'approved' ? 'badge-merged' : 
-                        audit.status === 'changes_requested' ? 'badge-rejected' : 'badge-review'
-                      }`} style={{ fontSize: '10px', padding: '2px 6px' }}>
-                        {audit.status === 'approved' ? 'Approved' : audit.status === 'changes_requested' ? 'Rejected' : 'In Review'}
-                      </span>
-                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        <User size={10} /> {audit.author}
-                      </span>
+            audits.map(audit => {
+              const isActive = selectedAuditId === audit.id;
+              return (
+                <div 
+                  key={audit.id} 
+                  className={`pr-item ${isActive ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedAuditId(audit.id);
+                    setIsSidebarCollapsed(true); // Collapse sidebar on click
+                  }}
+                  title={isSidebarCollapsed ? `${audit.title} (${audit.repository})` : ''}
+                  style={{
+                    padding: isSidebarCollapsed ? '8px 0' : '14px',
+                    justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+                    borderRadius: '12px',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    width: '100%'
+                  }}
+                >
+                  {isSidebarCollapsed ? (
+                    // Collapsed Avatar view
+                    <img 
+                      src={`https://images.unsplash.com/photo-${audit.author === 'dev_sarah' ? '1494790108377-be9c29b29330' : '1535713875002-d1d0cf377fde'}?w=100`} 
+                      alt="avatar" 
+                      className="pr-avatar"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: isActive ? '2px solid var(--primary-teal)' : '2px solid transparent',
+                        boxShadow: isActive ? '0 0 10px var(--glow-color)' : 'none',
+                        margin: 0,
+                        transition: 'all 0.2s ease'
+                      }}
+                    />
+                  ) : (
+                    // Expanded Detailed list view
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+                      <img 
+                        src={`https://images.unsplash.com/photo-${audit.author === 'dev_sarah' ? '1494790108377-be9c29b29330' : '1535713875002-d1d0cf377fde'}?w=100`} 
+                        alt="avatar" 
+                        className="pr-avatar" 
+                      />
+                      <div className="pr-details" style={{ width: '100%', overflow: 'hidden' }}>
+                        <span className="pr-title" style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc', whiteSpace: 'nowrap', textOverflow: 'ellipsis', display: 'block', overflow: 'hidden' }}>
+                          {audit.title}
+                        </span>
+                        <span className="pr-repo" style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', display: 'block', overflow: 'hidden' }}>
+                          {audit.repository}
+                        </span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                          <span className={`badge ${
+                            audit.status === 'approved' ? 'badge-merged' : 
+                            audit.status === 'changes_requested' ? 'badge-rejected' : 'badge-review'
+                          }`} style={{ fontSize: '10px', padding: '2px 6px' }}>
+                            {audit.status === 'approved' ? 'Approved' : audit.status === 'changes_requested' ? 'Rejected' : 'In Review'}
+                          </span>
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <User size={10} /> {audit.author}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
               No active pull requests found.
@@ -62,8 +148,17 @@ export default function PRDetails({
         </div>
       </div>
 
-      {/* Right Column: PR Details & Comparison Report */}
-      <div className="detail-container" style={{ margin: 0, padding: 0 }}>
+      {/* Right Column: PR Details & Comparison Report (Scrollable viewport) */}
+      <div 
+        className="detail-container" 
+        style={{ 
+          margin: 0, 
+          padding: 0,
+          maxHeight: 'calc(100vh - 120px)',
+          overflowY: 'auto',
+          paddingRight: '8px'
+        }}
+      >
         {activeAudit ? (
           <div>
             {/* Header info */}
