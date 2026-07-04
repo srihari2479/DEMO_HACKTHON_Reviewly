@@ -20,7 +20,9 @@ export default function PRDetails({
       className="dashboard-grid" 
       style={{ 
         gridTemplateColumns: isSidebarCollapsed ? '64px 1fr' : '360px 1fr',
-        transition: 'grid-template-columns 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+        transition: 'grid-template-columns 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        height: 'calc(100vh - 120px)',
+        overflow: 'hidden'
       }}
     >
       {/* Left Column: Collapsible List of PR Audits */}
@@ -28,7 +30,7 @@ export default function PRDetails({
         className="sidebar-prs glass-panel" 
         style={{ 
           width: isSidebarCollapsed ? '64px' : '360px',
-          maxHeight: 'calc(100vh - 120px)', 
+          height: '100%', 
           overflowY: 'auto',
           overflowX: 'hidden',
           transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -154,7 +156,7 @@ export default function PRDetails({
         style={{ 
           margin: 0, 
           padding: 0,
-          maxHeight: 'calc(100vh - 120px)',
+          height: '100%',
           overflowY: 'auto',
           paddingRight: '8px'
         }}

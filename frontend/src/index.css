@@ -959,10 +959,20 @@ input:checked + .slider:before {
 }
 
 .detail-grid {
-  display: grid;
-  grid-template-columns: 1fr 440px;
+  display: flex;
+  flex-wrap: wrap;
   gap: 28px;
-  align-items: start;
+  align-items: flex-start;
+}
+
+.detail-grid > div:first-child {
+  flex: 1 1 500px;
+  min-width: 0;
+}
+
+.detail-grid > div:last-child {
+  flex: 1 1 380px;
+  max-width: 440px;
 }
 
 .info-section {
