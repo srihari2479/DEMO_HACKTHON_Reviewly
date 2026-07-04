@@ -331,10 +331,15 @@ export default function App() {
 
           {activeTab === 'prs' && (
             <PRDetails 
+              audits={audits}
+              selectedAuditId={selectedAuditId}
+              setSelectedAuditId={setSelectedAuditId}
               activeAudit={activeAudit}
               reviewComments={reviewComments}
               setReviewComments={setReviewComments}
               handleReviewSubmit={handleReviewSubmit}
+              sliderPosition={sliderPosition}
+              setSliderPosition={setSliderPosition}
             />
           )}
 

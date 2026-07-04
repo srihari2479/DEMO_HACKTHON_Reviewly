@@ -59,7 +59,7 @@ export default function History({
               <th className="history-th">PR</th>
               <th className="history-th">Date</th>
               <th className="history-th">Changes</th>
-              <th className="history-th">Reviewer</th>
+              <th className="history-th">Contributor</th>
               <th className="history-th">Status</th>
               <th className="history-th">Action</th>
             </tr>
@@ -82,7 +82,16 @@ export default function History({
                 <React.Fragment key={audit.id}>
                   <tr className="history-tr">
                     <td className="history-td-panel">
-                      <span className="history-pr-title">#{audit.pr_number}: {audit.title}</span>
+                      <span 
+                        className="history-pr-title" 
+                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                        onClick={() => {
+                          setSelectedAuditId(audit.id);
+                          setActiveTab('prs');
+                        }}
+                      >
+                        #{audit.pr_number}: {audit.title}
+                      </span>
                     </td>
                     <td className="history-td-panel" style={{ color: 'var(--text-secondary)' }}>
                       {new Date(audit.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
