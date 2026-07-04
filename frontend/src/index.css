@@ -1295,3 +1295,14 @@ pre, code {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+.app-container.login-page-active {
+  background-image: url('/login_page_bg.jpeg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  padding: 24px 40px !important;
+}

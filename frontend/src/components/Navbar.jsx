@@ -31,7 +31,7 @@ export default function Navbar({
     <header className={`navbar ${user ? 'glass-panel' : ''}`} style={!user ? { border: 'none', background: 'transparent', boxShadow: 'none' } : {}}>
       <div className="brand">
         <img 
-          src="/logo.png" 
+          src={user ? '/logo.png' : '/symbol.png'} 
           alt="Reviewly Logo" 
           style={{ height: '34px', width: 'auto', objectFit: 'contain' }} 
         />

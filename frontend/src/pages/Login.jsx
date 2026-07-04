@@ -8,46 +8,25 @@ const GithubIcon = (props) => (
 
 export default function Login({ loginWithGitHub }) {
   return (
-    <div className="login-container" style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 120px)' }}>
-      {/* Background Aurora Glow Blobs */}
-      <div style={{
-        position: 'absolute',
-        top: '-15%',
-        left: '-10%',
-        width: '60vw',
-        height: '60vh',
-        background: 'radial-gradient(circle, rgba(20, 184, 166, 0.14) 0%, rgba(20, 184, 166, 0) 70%)',
-        filter: 'blur(100px)',
-        zIndex: 0,
-        pointerEvents: 'none'
-      }} />
-      <div style={{
-        position: 'absolute',
-        bottom: '-15%',
-        right: '-10%',
-        width: '65vw',
-        height: '65vh',
-        background: 'radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, rgba(6, 182, 212, 0) 70%)',
-        filter: 'blur(120px)',
-        zIndex: 0,
-        pointerEvents: 'none'
-      }} />
-
+    <div className="login-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 120px)', background: 'transparent' }}>
       {/* Center login card */}
       <div 
         className="login-card glass-panel" 
         style={{ 
           zIndex: 1, 
-          background: 'rgba(11, 21, 41, 0.78)', /* glassy dark navy 78% opacity */
+          background: 'rgba(11, 21, 41, 0.82)', /* glassy dark navy 82% opacity */
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           borderColor: 'rgba(20, 184, 166, 0.25)',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.55), 0 0 30px rgba(20, 184, 166, 0.15)',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.65), 0 0 30px rgba(20, 184, 166, 0.15)',
           padding: '44px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '24px'
+          gap: '24px',
+          width: '100%',
+          maxWidth: '440px',
+          borderRadius: '18px'
         }}
       >
         <img 
@@ -102,7 +81,7 @@ export default function Login({ loginWithGitHub }) {
           Secure authentication via GitHub OAuth
         </span>
 
-        {/* Restyled Prerequisite Notice Box */}
+        {/* Prerequisite Notice Box */}
         <div style={{ 
           marginTop: '8px', 
           padding: '14px 16px', 
