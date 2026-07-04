@@ -1,6 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List
+import re
+import httpx
+import os
 from app.services.supabase import supabase_service
 from app.services.groq import groq_service
 from app.services.gemini import gemini_service
@@ -108,3 +111,104 @@ def review_pull_request(audit_id: str, payload: ReviewPRRequest):
         raise HTTPException(status_code=404, detail="Failed to submit review; record not found.")
 
     return {"status": "success", "data": audit}
+
+@router.post("/webhook")
+async def github_webhook(request: Request):
+    """
+    Captures Pull Request webhook events from GitHub, fetches raw code diffs from 
+    the GitHub API, parses before/after screenshots from descriptions, and triggers audits.
+    """
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload.")
+        
+    # Check if this is a pull_request event
+    if "pull_request" not in payload:
+        return {"status": "ignored", "message": "Event is not a pull request event."}
+        
+    action = payload.get("action")
+    if action not in ["opened", "synchronize", "reopened"]:
+        return {"status": "ignored", "message": f"PR action '{action}' is not audited."}
+        
+    pr_number = payload["number"]
+    title = payload["pull_request"]["title"]
+    author = payload["pull_request"]["user"]["login"]
+    repository = payload["repository"]["full_name"]
+    pr_body = payload["pull_request"].get("body") or ""
+    
+    # 1. Fetch raw git diff from GitHub API
+    diff_url = f"https://api.github.com/repos/{repository}/pulls/{pr_number}"
+    headers = {
+        "Accept": "application/vnd.github.v3.diff",
+        "User-Agent": "Reviewly-Auditor"
+    }
+    # Add optional GitHub Token if configured in env for private repos
+    github_token = os.getenv("GITHUB_TOKEN")
+    if github_token:
+        headers["Authorization"] = f"token {github_token}"
+        
+    git_diff = ""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(diff_url, headers=headers, timeout=15.0)
+            if response.status_code == 200:
+                git_diff = response.text
+            else:
+                git_diff = f"Error fetching diff from GitHub: HTTP {response.status_code}\n{response.text}"
+    except Exception as e:
+        git_diff = f"Failed to fetch diff: {str(e)}"
+        
+    # 2. Extract before/after screenshots from PR description using Regex
+    image_pattern = r'!\[.*?\]\((https?://.*?)\)'
+    images = re.findall(image_pattern, pr_body)
+    
+    # Also support simple image links ending in extension
+    if len(images) < 2:
+        url_pattern = r'(https?://[^\s)]+\.(?:png|jpg|jpeg|gif))'
+        found_urls = re.findall(url_pattern, pr_body)
+        for url in found_urls:
+            if url not in images:
+                images.append(url)
+                
+    before_url = images[0] if len(images) > 0 else "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=600"
+    after_url = images[1] if len(images) > 1 else "https://images.unsplash.com/photo-1541462608141-2ff01dd914e0?w=600"
+    
+    # 3. Trigger the full Reviewly audit pipeline
+    ai_summary = groq_service.summarize_diff(git_diff)
+    visual_changes, ai_risks = gemini_service.analyze_ui_changes(
+        git_diff=git_diff,
+        before_url=before_url,
+        after_url=after_url
+    )
+    final_summary = f"{ai_summary}\n\n*Visual Updates:*\n{visual_changes}"
+    
+    # 4. Write record to Supabase
+    audit = supabase_service.create_audit(
+        pr_number=pr_number,
+        title=title,
+        author=author,
+        repository=repository,
+        git_diff=git_diff,
+        before_screenshot_url=before_url,
+        after_screenshot_url=after_url,
+        ai_summary=final_summary,
+        ai_risks=ai_risks
+    )
+    
+    if not audit:
+        raise HTTPException(status_code=500, detail="Failed to record audit in Supabase.")
+        
+    # 5. Broadcast to Slack
+    slack_service.send_pr_notification(
+        audit_id=audit["id"],
+        pr_number=pr_number,
+        title=title,
+        author=author,
+        repository=repository,
+        ai_summary=final_summary,
+        ai_risks=ai_risks,
+        portal_base_url="http://localhost:5173"
+    )
+    
+    return {"status": "success", "audit_id": audit["id"], "action": "audited"}
