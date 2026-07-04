@@ -43,8 +43,8 @@ index 838afd..92fa1b 100644
 export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'prs', 'history', 'settings'
-  const [audits, setAudits] = useState(SEED_AUDITS);
-  const [selectedAuditId, setSelectedAuditId] = useState(SEED_AUDITS[0].id);
+  const [audits, setAudits] = useState([]);
+  const [selectedAuditId, setSelectedAuditId] = useState(null);
   const [reviewComments, setReviewComments] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -139,15 +139,19 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/pr/list`);
       const data = await response.json();
-      if (data.status === "success" && data.data.length > 0) {
+      if (data.status === "success") {
         setAudits(data.data);
-        // Retain selection if valid, else select first
-        setSelectedAuditId(prevId => {
-          return data.data.some(a => a.id === prevId) ? prevId : data.data[0].id;
-        });
+        if (data.data.length > 0) {
+          // Retain selection if valid, else select first
+          setSelectedAuditId(prevId => {
+            return data.data.some(a => a.id === prevId) ? prevId : data.data[0].id;
+          });
+        } else {
+          setSelectedAuditId(null);
+        }
       }
     } catch (e) {
-      console.warn("Backend API not reachable. Using fallback seed data.", e);
+      console.warn("Backend API not reachable.", e);
     }
   };
 
