@@ -11,7 +11,11 @@ export default function SimulatorConsole({
   selectedRepo,
   setSelectedRepo,
   isConsoleModalOpen,
-  setIsConsoleModalOpen
+  setIsConsoleModalOpen,
+  referenceUrl,
+  setReferenceUrl,
+  previewUrl,
+  setPreviewUrl
 }) {
   const consoleContainerRef = useRef(null);
 
@@ -55,7 +59,7 @@ export default function SimulatorConsole({
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
           {/* Repository selection */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1', minWidth: '250px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1', minWidth: '200px' }}>
             <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>CHOOSE REPOSITORY</span>
             <select 
               value={selectedRepo} 
@@ -78,6 +82,46 @@ export default function SimulatorConsole({
                 <option value="srihari2479/DEMO_HACKTHON_Reviewly">srihari2479/DEMO_HACKTHON_Reviewly</option>
               )}
             </select>
+          </div>
+
+          {/* Reference URL input */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1.2', minWidth: '200px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>REFERENCE WEBSITE (BEFORE)</span>
+            <input 
+              type="text"
+              value={referenceUrl}
+              onChange={(e) => setReferenceUrl(e.target.value)}
+              placeholder="e.g. https://playwright.dev"
+              style={{
+                background: '#0b0f19',
+                border: '1px solid var(--panel-border)',
+                color: '#f8fafc',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                outline: 'none'
+              }}
+            />
+          </div>
+
+          {/* Preview URL input */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1.2', minWidth: '200px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>PREVIEW WEBSITE (AFTER)</span>
+            <input 
+              type="text"
+              value={previewUrl}
+              onChange={(e) => setPreviewUrl(e.target.value)}
+              placeholder="e.g. http://localhost:5173"
+              style={{
+                background: '#0b0f19',
+                border: '1px solid var(--panel-border)',
+                color: '#f8fafc',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                outline: 'none'
+              }}
+            />
           </div>
 
           {/* Trigger button */}
