@@ -51,6 +51,7 @@ export default function App() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const providerToken = session?.provider_token;
+      const githubUsername = session?.user?.user_metadata?.user_name;
       
       if (!providerToken) {
         setErrorRepos("GitHub Access Token not found. Login again.");
@@ -67,17 +68,24 @@ export default function App() {
       
       const data = await response.json();
       if (Array.isArray(data)) {
-        const formatted = data.map(r => ({
-          id: r.id,
-          name: r.name,
-          owner: r.owner.login,
-          fullName: `${r.owner.login}/${r.name}`,
-          stars: r.stargazers_count,
-          forks: r.forks_count,
-          monitored: r.name.toLowerCase().includes('reviewly') || r.name.toLowerCase().includes('hackthon'),
-          language: r.language || 'HTML',
-          url: r.html_url
-        }));
+        const formatted = data
+          .map(r => ({
+            id: r.id,
+            name: r.name,
+            owner: r.owner.login,
+            fullName: `${r.owner.login}/${r.name}`,
+            stars: r.stargazers_count,
+            forks: r.forks_count,
+            monitored: r.name.toLowerCase().includes('reviewly') || r.name.toLowerCase().includes('hackthon'),
+            language: r.language || 'HTML',
+            url: r.html_url
+          }))
+          .filter(r => {
+            // Filter to show only repos owned by the logged-in GitHub user
+            if (!githubUsername) return true;
+            return r.owner.toLowerCase() === githubUsername.toLowerCase();
+          });
+          
         setRepos(formatted);
         if (formatted.length > 0) {
           setSelectedRepo(formatted[0].fullName);
