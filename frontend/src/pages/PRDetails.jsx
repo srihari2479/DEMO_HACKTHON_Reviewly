@@ -269,103 +269,98 @@ export default function PRDetails({
               )}
             </div>
 
-            {/* AI Analysis Grid */}
-            <div className="detail-grid" style={{ marginTop: '24px' }}>
-              {/* Left Side: Summary and Risks */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {/* AI Summary */}
-                <div className="glass-panel info-section">
-                  <span className="info-section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    AI Explanations (Groq Llama-3.3)
-                  </span>
-                  <ul className="bullet-list" style={{ marginTop: '12px' }}>
-                    {activeAudit.ai_summary.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                      <li key={idx} style={{ fontSize: '13px', lineHeight: '1.6', marginBottom: '6px' }}>
-                        {line.startsWith('*') ? line.substring(1).trim() : line}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+            {/* Stacking sections vertically */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
+              {/* AI Summary */}
+              <div className="glass-panel info-section" style={{ margin: 0 }}>
+                <span className="info-section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  AI Explanations (Groq Llama-3.3)
+                </span>
+                <ul className="bullet-list" style={{ marginTop: '12px' }}>
+                  {activeAudit.ai_summary.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
+                    <li key={idx} style={{ fontSize: '13px', lineHeight: '1.6', marginBottom: '6px' }}>
+                      {line.startsWith('*') ? line.substring(1).trim() : line}
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-                {/* UX Risks */}
-                <div className="glass-panel info-section">
-                  <span className="info-section-title" style={{ borderLeftColor: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    Visual UX Risks Flagged (Gemini 2.5)
-                  </span>
-                  <ul className="bullet-list" style={{ marginTop: '12px' }}>
-                    {activeAudit.ai_risks.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                      <li 
-                        key={idx} 
-                        style={{ 
-                          fontSize: '13px', 
-                          lineHeight: '1.6', 
-                          marginBottom: '6px',
-                          color: line.includes('High') || line.includes('Risk') ? '#ef4444' : 'var(--text-secondary)' 
-                        }}
-                      >
-                        {line.startsWith('*') ? line.substring(1).trim() : line}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              {/* UX Risks */}
+              <div className="glass-panel info-section" style={{ margin: 0 }}>
+                <span className="info-section-title" style={{ borderLeftColor: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  Visual UX Risks Flagged (Gemini 2.5)
+                </span>
+                <ul className="bullet-list" style={{ marginTop: '12px' }}>
+                  {activeAudit.ai_risks.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
+                    <li 
+                      key={idx} 
+                      style={{ 
+                        fontSize: '13px', 
+                        lineHeight: '1.6', 
+                        marginBottom: '6px',
+                        color: line.includes('High') || line.includes('Risk') ? '#ef4444' : 'var(--text-secondary)' 
+                      }}
+                    >
+                      {line.startsWith('*') ? line.substring(1).trim() : line}
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-                {/* Git diff */}
-                <div className="glass-panel info-section">
-                  <span className="info-section-title" style={{ borderLeftColor: '#6366f1' }}>Code Patch (git diff)</span>
-                  <pre style={{ 
-                    fontFamily: 'monospace', 
-                    fontSize: '12px', 
-                    padding: '16px', 
-                    background: 'rgba(0,0,0,0.3)', 
-                    borderRadius: '8px', 
-                    overflowX: 'auto',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    color: '#e2e8f0',
-                    marginTop: '12px'
-                  }}>
-                    <code>{activeAudit.git_diff}</code>
-                  </pre>
+              {/* Git diff */}
+              <div className="glass-panel info-section" style={{ margin: 0 }}>
+                <span className="info-section-title" style={{ borderLeftColor: '#6366f1' }}>Code Patch (git diff)</span>
+                <pre style={{ 
+                  fontFamily: 'monospace', 
+                  fontSize: '12px', 
+                  padding: '16px', 
+                  background: 'rgba(0,0,0,0.3)', 
+                  borderRadius: '8px', 
+                  overflowX: 'auto',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  color: '#e2e8f0',
+                  marginTop: '12px'
+                }}>
+                  <code>{activeAudit.git_diff}</code>
+                </pre>
+              </div>
+
+              {/* Feedbacks Form (Full Width Action Section) */}
+              <div className="glass-panel review-panel" style={{ margin: 0 }}>
+                <span className="info-section-title">Submit PR Feedback</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px', display: 'block' }}>
+                  Submit single-click status updates to the engineering team.
+                </span>
+                
+                <textarea 
+                  className="comment-textarea"
+                  placeholder="Add comments (e.g. 'Align buttons', 'Typo fixes needed')..."
+                  value={reviewComments}
+                  onChange={(e) => setReviewComments(e.target.value)}
+                  style={{ marginTop: '16px', minHeight: '120px' }}
+                />
+
+                <div className="btn-row" style={{ marginTop: '16px', display: 'flex', gap: '12px', gridTemplateColumns: 'none' }}>
+                  <button className="btn-approve" onClick={() => handleReviewSubmit('approved')} style={{ width: 'auto', minWidth: '150px' }}>
+                    Approve Review
+                  </button>
+                  <button className="btn-changes" onClick={() => handleReviewSubmit('changes_requested')} style={{ width: 'auto', minWidth: '150px' }}>
+                    Request Changes
+                  </button>
                 </div>
               </div>
 
-              {/* Right Side: Feedbacks Form */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div className="glass-panel review-panel">
-                  <span className="info-section-title">Submit PR Feedback</span>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px', display: 'block' }}>
-                    Submit single-click status updates to the engineering team.
+              {/* Active reviewer comments */}
+              {activeAudit.reviewer_comments && (
+                <div className="glass-panel info-section" style={{ borderLeft: '3px solid var(--primary-teal)', padding: '16px', margin: 0 }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: '#f8fafc' }}>
+                    <CornerDownRight size={14} /> Reviewer Response
                   </span>
-                  
-                  <textarea 
-                    className="comment-textarea"
-                    placeholder="Add comments (e.g. 'Align buttons', 'Typo fixes needed')..."
-                    value={reviewComments}
-                    onChange={(e) => setReviewComments(e.target.value)}
-                    style={{ marginTop: '16px', minHeight: '120px' }}
-                  />
-
-                  <div className="btn-row" style={{ marginTop: '16px' }}>
-                    <button className="btn-approve" onClick={() => handleReviewSubmit('approved')}>
-                      Approve Review
-                    </button>
-                    <button className="btn-changes" onClick={() => handleReviewSubmit('changes_requested')}>
-                      Request Changes
-                    </button>
-                  </div>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic', display: 'block', marginTop: '8px' }}>
+                    "{activeAudit.reviewer_comments}"
+                  </span>
                 </div>
-
-                {/* Active reviewer comments */}
-                {activeAudit.reviewer_comments && (
-                  <div className="glass-panel info-section" style={{ borderLeft: '3px solid var(--primary-teal)', padding: '16px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: '#f8fafc' }}>
-                      <CornerDownRight size={14} /> Reviewer Response
-                    </span>
-                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic', display: 'block', marginTop: '8px' }}>
-                      "{activeAudit.reviewer_comments}"
-                    </span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
         ) : (
