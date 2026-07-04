@@ -12,25 +12,20 @@ export default function Navbar({
   notifications,
   handleSignOut
 }) {
-  const notificationsRef = useRef(null);
-  const profileRef = useRef(null);
+  const navProfileRef = useRef(null);
 
-  // Click outside to close behavior
   useEffect(() => {
     function handleClickOutside(event) {
-      if (isNotificationsOpen && notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+      if (navProfileRef.current && !navProfileRef.current.contains(event.target)) {
         setIsNotificationsOpen(false);
-      }
-      if (isProfileOpen && profileRef.current && !profileRef.current.contains(event.target)) {
         setIsProfileOpen(false);
       }
     }
-    
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isNotificationsOpen, isProfileOpen, setIsNotificationsOpen, setIsProfileOpen]);
+  }, [setIsNotificationsOpen, setIsProfileOpen]);
 
   return (
     <header className="navbar glass-panel">
@@ -78,71 +73,62 @@ export default function Navbar({
         </nav>
       )}
 
-      <div className="nav-profile" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div className="nav-profile" ref={navProfileRef}>
         {user && (
           <>
-            {/* Notification bell and its dropdown */}
-            <div ref={notificationsRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <button 
-                className="icon-button"
-                onClick={() => {
-                  setIsNotificationsOpen(!isNotificationsOpen);
-                  setIsProfileOpen(false); // Close profile dropdown
-                }}
-              >
-                <Bell size={20} />
-                <span className="badge-dot"></span>
-              </button>
+            {/* Notification bell */}
+            <button 
+              className="icon-button"
+              onClick={() => {
+                setIsNotificationsOpen(!isNotificationsOpen);
+                setIsProfileOpen(false);
+              }}
+            >
+              <Bell size={20} />
+              <span className="badge-dot"></span>
+            </button>
 
-              {isNotificationsOpen && (
-                <div className="dropdown-menu notification-dropdown">
-                  <div style={{ padding: '8px 12px', fontWeight: 600, borderBottom: '1px solid var(--panel-border)', fontSize: '13px' }}>
-                    Recent Alerts
-                  </div>
-                  {notifications.map(n => (
-                    <div key={n.id} className="notification-item">
-                      <div className="notification-content">
-                        <span className="notification-title">{n.title}</span>
-                        <span className="notification-time">{n.time}</span>
-                      </div>
+            {isNotificationsOpen && (
+              <div className="dropdown-menu notification-dropdown">
+                <div style={{ padding: '8px 12px', fontWeight: 600, borderBottom: '1px solid var(--panel-border)', fontSize: '13px' }}>
+                  Recent Alerts
+                </div>
+                {notifications.map(n => (
+                  <div key={n.id} className="notification-item">
+                    <div className="notification-content">
+                      <span className="notification-title">{n.title}</span>
+                      <span className="notification-time">{n.time}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            {/* Profile avatar image and its dropdown */}
-            <div ref={profileRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <img 
-                src={user.avatar} 
-                alt="Profile avatar" 
-                className="profile-avatar"
-                style={{ cursor: 'pointer' }}
-                onClick={() => {
-                  setIsProfileOpen(!isProfileOpen);
-                  setIsNotificationsOpen(false); // Close notifications dropdown
-                }}
-              />
+            {/* Profile pic */}
+            <img 
+              src={user.avatar} 
+              alt="Profile avatar" 
+              className="profile-avatar"
+              onClick={() => {
+                setIsProfileOpen(!isProfileOpen);
+                setIsNotificationsOpen(false);
+              }}
+            />
 
-              {isProfileOpen && (
-                <div className="dropdown-menu">
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--panel-border)' }}>
-                    <div style={{ fontWeight: 600, fontSize: '13px' }}>{user.name}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{user.role}</div>
-                  </div>
-                  <div className="dropdown-item" onClick={() => { setActiveTab('settings'); setIsProfileOpen(false); }}>
-                    Profile Settings
-                  </div>
-                  <div className="dropdown-item" onClick={() => { setActiveTab('settings'); setIsProfileOpen(false); }}>
-                    Billing
-                  </div>
-                  <div className="dropdown-divider"></div>
-                  <div className="dropdown-item" style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={handleSignOut}>
-                    <LogOut size={14} /> Log Out
-                  </div>
+            {isProfileOpen && (
+              <div className="dropdown-menu">
+                <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--panel-border)' }}>
+                  <div style={{ fontWeight: 600, fontSize: '13px' }}>{user.name}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{user.role}</div>
                 </div>
-              )}
-            </div>
+                <div className="dropdown-item" onClick={() => setActiveTab('settings')}>Profile Settings</div>
+                <div className="dropdown-item" onClick={() => setActiveTab('settings')}>Billing</div>
+                <div className="dropdown-divider"></div>
+                <div className="dropdown-item" style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={handleSignOut}>
+                  <LogOut size={14} /> Log Out
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
