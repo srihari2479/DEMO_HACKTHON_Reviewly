@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import PRDetails from './pages/PRDetails';
 import History from './pages/History';
 import Settings from './pages/Settings';
+import Repositories from './pages/Repositories';
 
 // Fallback seed data in case Supabase is blank
 const SEED_AUDITS = [
@@ -344,6 +345,10 @@ index 92fa1b..73ac0a 100644
               setSelectedAuditId={setSelectedAuditId}
               setActiveTab={setActiveTab}
             />
+          )}
+
+          {activeTab === 'repos' && (
+            <Repositories user={user} />
           )}
 
           {activeTab === 'settings' && (

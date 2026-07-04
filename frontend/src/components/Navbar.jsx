@@ -28,6 +28,12 @@ export default function Navbar({
             Dashboard
           </button>
           <button 
+            className={`nav-link ${activeTab === 'repos' ? 'active' : ''}`}
+            onClick={() => setActiveTab('repos')}
+          >
+            Repos
+          </button>
+          <button 
             className={`nav-link ${activeTab === 'prs' ? 'active' : ''}`}
             onClick={() => setActiveTab('prs')}
           >
