@@ -30,21 +30,11 @@ export default function Navbar({
   return (
     <header className="navbar glass-panel">
       <div className="brand">
-        <div style={{
-          background: '#f8fafc',
-          padding: '6px 14px',
-          borderRadius: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-        }}>
-          <img 
-            src="/logo.png" 
-            alt="Reviewly Logo" 
-            style={{ height: '22px', width: 'auto', objectFit: 'contain' }} 
-          />
-        </div>
+        <img 
+          src="/logo.png" 
+          alt="Reviewly Logo" 
+          style={{ height: '34px', width: 'auto', objectFit: 'contain' }} 
+        />
       </div>
       
       {user && (
