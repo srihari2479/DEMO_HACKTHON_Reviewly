@@ -186,7 +186,13 @@ export default function App() {
     }
   };
 
-  const activeAudit = audits.find(a => a.id === selectedAuditId) || audits[0];
+  const userAudits = (repos.length === 0 && loadingRepos)
+    ? audits
+    : audits.filter(audit => 
+        repos.some(repo => repo.fullName.toLowerCase() === audit.repository.toLowerCase())
+      );
+
+  const activeAudit = userAudits.find(a => a.id === selectedAuditId) || userAudits[0];
 
   // Post reviewer approval/rejection to FastAPI backend
   const handleReviewSubmit = async (status) => {
@@ -317,7 +323,7 @@ export default function App() {
 
           {activeTab === 'dashboard' && (
             <Dashboard 
-              audits={audits}
+              audits={userAudits}
               selectedAuditId={selectedAuditId}
               setSelectedAuditId={setSelectedAuditId}
               activeAudit={activeAudit}
@@ -329,7 +335,7 @@ export default function App() {
 
           {activeTab === 'prs' && (
             <PRDetails 
-              audits={audits}
+              audits={userAudits}
               selectedAuditId={selectedAuditId}
               setSelectedAuditId={setSelectedAuditId}
               activeAudit={activeAudit}
@@ -343,7 +349,7 @@ export default function App() {
 
           {activeTab === 'history' && (
             <History 
-              audits={audits}
+              audits={userAudits}
               statusFilter={statusFilter}
               setStatusFilter={setStatusFilter}
               searchQuery={searchQuery}
