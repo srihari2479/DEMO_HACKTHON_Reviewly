@@ -15,8 +15,11 @@ export default function Navbar({
   return (
     <header className="navbar glass-panel">
       <div className="brand">
-        <div className="brand-logo">&lt;R&gt;</div>
-        <span>Reviewly</span>
+        <div className="overlapping-logo">
+          <div className="logo-square square-white"></div>
+          <div className="logo-square square-teal">R</div>
+        </div>
+        <span className="brand-wordmark">Reviewly</span>
       </div>
       
       {user && (

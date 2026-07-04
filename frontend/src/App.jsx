@@ -1,3 +1,4 @@
+//app.jsx
 import React, { useState, useEffect } from 'react';
 import { supabase, BACKEND_URL } from './services/supabase';
 

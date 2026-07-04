@@ -36,7 +36,7 @@ export default function Dashboard({
     <div>
       {/* Top Metrics widgets (Dynamic Calculations) */}
       <div className="metrics-grid">
-        <div className="metric-card glass-panel">
+        <div className="metric-card glass-panel primary-glow-card">
           <div className="metric-icon-wrapper">
             <GitPullRequest size={24} />
           </div>
