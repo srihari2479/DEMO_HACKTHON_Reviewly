@@ -41,6 +41,10 @@ class SupabaseService:
         response = self.client.table("pr_audits").select("*").eq("id", audit_id).execute()
         return response.data[0] if response.data else None
 
+    def get_audit_by_number(self, repository: str, pr_number: int) -> Optional[Dict[str, Any]]:
+        response = self.client.table("pr_audits").select("*").eq("repository", repository).eq("pr_number", pr_number).execute()
+        return response.data[0] if response.data else None
+
     def update_audit_status(self, audit_id: str, status: str, reviewer_comments: Optional[str] = None) -> Optional[Dict[str, Any]]:
         update_data = {"status": status}
         if reviewer_comments is not None:

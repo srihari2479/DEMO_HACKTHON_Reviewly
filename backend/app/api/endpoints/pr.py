@@ -290,20 +290,26 @@ async def audit_repository_pr(payload: AuditRepoRequest):
     final_summary = f"{ai_summary}\n\n*Visual Updates:*\n{visual_changes}"
     
     # 4. Write record to Supabase
-    audit = supabase_service.create_audit(
-        pr_number=pr_number,
-        title=title,
-        author=author,
-        repository=repository,
-        git_diff=git_diff,
-        before_screenshot_url=before_url,
-        after_screenshot_url=after_url,
-        ai_summary=final_summary,
-        ai_risks=ai_risks
-    )
-    
-    if not audit:
-        raise HTTPException(status_code=500, detail="Failed to record audit in Supabase.")
+    try:
+        audit = supabase_service.create_audit(
+            pr_number=pr_number,
+            title=title,
+            author=author,
+            repository=repository,
+            git_diff=git_diff,
+            before_screenshot_url=before_url,
+            after_screenshot_url=after_url,
+            ai_summary=final_summary,
+            ai_risks=ai_risks
+        )
+    except Exception as e:
+        # Gracefully serve existing record on duplicate key violations
+        if "duplicate" in str(e) or "23505" in str(e):
+            audit = supabase_service.get_audit_by_number(repository, pr_number)
+            if not audit:
+                raise HTTPException(status_code=500, detail="Audit record already exists, but failed to fetch it.")
+        else:
+            raise HTTPException(status_code=500, detail=f"Database write error: {str(e)}")
         
     # 5. Broadcast to Slack
     slack_service.send_pr_notification(
