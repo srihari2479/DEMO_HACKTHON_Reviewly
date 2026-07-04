@@ -94,21 +94,82 @@ export default function PRDetails({
               </div>
             </div>
 
-            {/* Before/After Screenshot Slider */}
+            {/* Before/After Screenshot Slider or Code-Only Summary */}
             <div className="glass-panel slider-container" style={{ marginTop: '24px', padding: '16px' }}>
-              <div className="slider-tabs" style={{ marginBottom: '16px' }}>
-                <span className="tab-pill before">Before Changes</span>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Visual Layout Diff Check
-                </span>
-                <span className="tab-pill after">After Changes</span>
-              </div>
-              <DiffSlider 
-                beforeUrl={activeAudit.before_screenshot_url}
-                afterUrl={activeAudit.after_screenshot_url}
-                sliderPosition={sliderPosition}
-                setSliderPosition={setSliderPosition}
-              />
+              {activeAudit.before_screenshot_url && activeAudit.after_screenshot_url ? (
+                <>
+                  <div className="slider-tabs" style={{ marginBottom: '16px' }}>
+                    <span className="tab-pill before">Before Changes</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      Visual Layout Diff Check
+                    </span>
+                    <span className="tab-pill after">After Changes</span>
+                  </div>
+                  <DiffSlider 
+                    beforeUrl={activeAudit.before_screenshot_url}
+                    afterUrl={activeAudit.after_screenshot_url}
+                    sliderPosition={sliderPosition}
+                    setSliderPosition={setSliderPosition}
+                  />
+                </>
+              ) : (
+                <>
+                  <div className="slider-tabs" style={{ marginBottom: '16px' }}>
+                    <span className="tab-pill before" style={{ background: 'rgba(99, 102, 241, 0.1)', borderColor: 'rgba(99, 102, 241, 0.3)', color: '#818cf8' }}>Code Audit</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      Scope of Code-Only Update
+                    </span>
+                    <span className="tab-pill after" style={{ background: 'rgba(255, 255, 255, 0.05)', borderColor: 'rgba(255, 255, 255, 0.1)', color: '#94a3b8' }}>No UI</span>
+                  </div>
+                  
+                  <div style={{ padding: '20px', background: 'rgba(255, 255, 255, 0.01)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.03)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', fontWeight: 600 }}>
+                        ℹ️ Code-Only Update (No UI layout screenshots attached)
+                      </span>
+                    </div>
+                    
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', margin: 0 }}>
+                      This pull request contains backend code, logic modifications, or documentation changes. No UI screenshot diff was attached to the PR.
+                    </p>
+
+                    <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '16px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--primary-teal)', display: 'block', marginBottom: '8px', letterSpacing: '0.05em' }}>
+                        MODIFIED FILES ({(() => {
+                          if (!activeAudit.git_diff) return 0;
+                          return activeAudit.git_diff.split('\n').filter(line => line.startsWith('+++ b/')).length;
+                        })()})
+                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {(() => {
+                          if (!activeAudit.git_diff) return null;
+                          return activeAudit.git_diff.split('\n')
+                            .filter(line => line.startsWith('+++ b/'))
+                            .map((line, idx) => {
+                              const file = line.substring(6).trim();
+                              return (
+                                <code key={idx} style={{ fontSize: '12px', color: '#cbd5e1', background: 'rgba(0, 0, 0, 0.4)', padding: '4px 10px', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.03)', width: 'fit-content', fontFamily: 'monospace' }}>
+                                  {file}
+                                </code>
+                              );
+                            });
+                        })()}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      <span>Additions: <strong style={{ color: '#10b981' }}>+{(() => {
+                        if (!activeAudit.git_diff) return 0;
+                        return activeAudit.git_diff.split('\n').filter(line => line.startsWith('+') && !line.startsWith('+++')).length;
+                      })()} lines</strong></span>
+                      <span>Deletions: <strong style={{ color: '#ef4444' }}>-{(() => {
+                        if (!activeAudit.git_diff) return 0;
+                        return activeAudit.git_diff.split('\n').filter(line => line.startsWith('-') && !line.startsWith('---')).length;
+                      })()} lines</strong></span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* AI Analysis Grid */}

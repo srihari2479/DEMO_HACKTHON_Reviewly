@@ -171,8 +171,8 @@ async def github_webhook(request: Request):
             if url not in images:
                 images.append(url)
                 
-    before_url = images[0] if len(images) > 0 else "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=600"
-    after_url = images[1] if len(images) > 1 else "https://images.unsplash.com/photo-1541462608141-2ff01dd914e0?w=600"
+    before_url = images[0] if len(images) > 0 else None
+    after_url = images[1] if len(images) > 1 else None
     
     # 3. Trigger the full Reviewly audit pipeline
     ai_summary = groq_service.summarize_diff(git_diff)
@@ -277,8 +277,8 @@ async def audit_repository_pr(payload: AuditRepoRequest):
             if url not in images:
                 images.append(url)
                 
-    before_url = images[0] if len(images) > 0 else "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=600"
-    after_url = images[1] if len(images) > 1 else "https://images.unsplash.com/photo-1541462608141-2ff01dd914e0?w=600"
+    before_url = images[0] if len(images) > 0 else None
+    after_url = images[1] if len(images) > 1 else None
     
     # 3. Trigger the full Reviewly audit pipeline
     ai_summary = groq_service.summarize_diff(git_diff)
