@@ -21,6 +21,9 @@ export default function Login({ loginWithGitHub }) {
         <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
           Secure authentication via GitHub OAuth
         </span>
+        <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(245, 158, 11, 0.08)', border: '1px dashed rgba(245, 158, 11, 0.3)', borderRadius: '8px', fontSize: '11px', color: 'var(--status-review-text)', textAlign: 'left', lineHeight: '1.4' }}>
+          <strong>Prerequisite:</strong> Enable the GitHub auth provider in your Supabase Console under <em>Authentication &gt; Providers</em> before clicking login.
+        </div>
       </div>
     </div>
   );

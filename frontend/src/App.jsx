@@ -91,12 +91,15 @@ export default function App() {
 
   const loginWithGitHub = async () => {
     try {
-      await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
           redirectTo: window.location.origin
         }
       });
+      if (error) {
+        alert(`Supabase Auth Error: ${error.message}\n\nHint: Ensure 'GitHub' is enabled in your Supabase Dashboard under Authentication -> Providers.`);
+      }
     } catch (e) {
       console.error("Authentication trigger failed.", e);
     }
