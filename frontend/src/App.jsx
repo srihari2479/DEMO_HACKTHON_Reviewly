@@ -229,37 +229,58 @@ export default function App() {
   };
 
   const triggerSimulation = async () => {
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     const getLogTime = () => new Date().toLocaleTimeString('en-US', { hour12: false });
-    
-    setIsConsoleModalOpen(true);
-    setIsSimulating(true);
-    setSimLogs([
-      `[${getLogTime()}] 🚀 Connecting to GitHub API for repository: ${selectedRepo}...`,
-      `[${getLogTime()}] 📡 Querying all active open Pull Requests...`,
-      `[${getLogTime()}] 📡 Checking for un-audited updates...`
-    ]);
-
-    const payload = {
-      repository: selectedRepo
+    const appendLog = (message) => {
+      setSimLogs(prev => [...prev, { time: getLogTime(), message }]);
     };
 
+    setIsConsoleModalOpen(true);
+    setIsSimulating(true);
+    setSimLogs([]); // Clear logs initially
+    
+    // Line 1:
+    appendLog(`🚀 Connecting to GitHub API for repository: ${selectedRepo}...`);
+    await sleep(600);
+    
+    // Line 2:
+    appendLog("📡 Querying all active open Pull Requests...");
+    await sleep(600);
+    
+    // Line 3:
+    appendLog("📡 Checking for un-audited updates...");
+    await sleep(600);
+    
+    // Line 4:
+    appendLog("🤖 Querying Groq Llama-3.3 diff summarizers...");
+    await sleep(600);
+    
+    // Line 5:
+    appendLog("📸 Querying Gemini 2.5 UI auditors...");
+
+    // Trigger API call in parallel
+    const payload = { repository: selectedRepo };
+    const apiPromise = fetch(`${BACKEND_URL}/api/pr/audit-repo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
     try {
-      setSimLogs(prev => [...prev, `[${getLogTime()}] 🤖 Querying Groq Llama-3.3 diff summarizers...`]);
-      setSimLogs(prev => [...prev, `[${getLogTime()}] 📸 Querying Gemini 2.5 UI auditors...`]);
-      
-      const response = await fetch(`${BACKEND_URL}/api/pr/audit-repo`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      
+      // Wait for the API request to complete
+      const response = await apiPromise;
       const data = await response.json();
+      
+      // Delay to maintain the clean pacing
+      await sleep(600);
+      
       if (data.status === "success") {
-        setSimLogs(prev => [
-          ...prev,
-          `[${getLogTime()}] 💾 Sync status: ${data.message}`,
-          `[${getLogTime()}] 🎉 Live audit execution complete!`
-        ]);
+        // Line 6:
+        appendLog(`💾 Sync status: ${data.message}`);
+        await sleep(600);
+        
+        // Line 7:
+        appendLog("🎉 Live audit execution complete!");
         
         await fetchAudits();
         
@@ -267,18 +288,16 @@ export default function App() {
           setTimeout(() => {
             setSelectedAuditId(data.audits[0].id);
             setActiveTab('dashboard');
-          }, 500);
+          }, 1000);
         }
       } else {
         const errorDetail = data.detail || "Failed to sync PR details from GitHub.";
-        setSimLogs(prev => [...prev, `[${getLogTime()}] ❌ Error: ${errorDetail}`]);
+        appendLog(`❌ Error: ${errorDetail}`);
         alert(`Audit Trigger Failed: ${errorDetail}\n\nHint: Verify that the repo name is correct and accessible.`);
       }
     } catch (e) {
-      setSimLogs(prev => [
-        ...prev,
-        `[${getLogTime()}] ❌ Connection Error: Backend API not reachable. Ensure uvicorn is running on port 7860.`
-      ]);
+      await sleep(600);
+      appendLog("❌ Connection Error: Backend API not reachable. Ensure uvicorn is running on port 7860.");
       alert("Simulation failed: Unable to connect to the FastAPI backend. Check if uvicorn is running.");
     } finally {
       setIsSimulating(false);

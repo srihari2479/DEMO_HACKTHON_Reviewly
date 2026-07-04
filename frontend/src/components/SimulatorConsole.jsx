@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { RefreshCw, GitPullRequest } from 'lucide-react';
 
 export default function SimulatorConsole({
@@ -13,6 +13,15 @@ export default function SimulatorConsole({
   isConsoleModalOpen,
   setIsConsoleModalOpen
 }) {
+  const consoleContainerRef = useRef(null);
+
+  // Auto-scroll terminal logs to bottom on updates
+  useEffect(() => {
+    if (consoleContainerRef.current) {
+      consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight;
+    }
+  }, [simLogs]);
+
   if (!isSimulatorOpen) return null;
 
   return (
@@ -165,23 +174,29 @@ export default function SimulatorConsole({
               📟 System Terminal Logs
             </span>
 
-            <div style={{ 
-              fontFamily: 'monospace', 
-              fontSize: '12px', 
-              color: '#10b981', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '6px',
-              maxHeight: '350px',
-              overflowY: 'auto',
-              background: 'rgba(0,0,0,0.3)',
-              padding: '16px',
-              borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.02)'
-            }}>
+            <div 
+              ref={consoleContainerRef}
+              style={{ 
+                fontFamily: 'monospace', 
+                fontSize: '12px', 
+                color: '#10b981', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '6px',
+                maxHeight: '350px',
+                overflowY: 'auto',
+                background: 'rgba(0,0,0,0.3)',
+                padding: '16px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.02)'
+              }}
+            >
               {simLogs.length > 0 ? (
                 simLogs.map((log, index) => (
-                  <div key={index} style={{ lineHeight: '1.5' }}>{log}</div>
+                  <div key={index} className="console-line" style={{ lineHeight: '1.5', display: 'flex', gap: '8px' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>[{log.time}]</span>
+                    <span>{log.message}</span>
+                  </div>
                 ))
               ) : (
                 <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', padding: '10px 0' }}>
