@@ -224,18 +224,17 @@ export default function App() {
     setIsSimulating(true);
     setSimLogs([
       `🚀 [Console] Connecting to GitHub API for repository: ${selectedRepo}...`,
-      `📦 [Console] Locating Pull Request #${prNumber}...`,
-      `📡 [Console] Fetching raw code patch & metadata from GitHub...`
+      `📡 [Console] Querying all active open Pull Requests...`,
+      `📡 [Console] Checking for un-audited updates...`
     ]);
 
     const payload = {
-      repository: selectedRepo,
-      pr_number: parseInt(prNumber)
+      repository: selectedRepo
     };
 
     try {
-      setSimLogs(prev => [...prev, "🤖 [Console] Querying Groq Llama-3.3 diff summarizer..."]);
-      setSimLogs(prev => [...prev, "📸 [Console] Querying Gemini 2.5 multimodal UI auditor..."]);
+      setSimLogs(prev => [...prev, "🤖 [Console] Querying Groq Llama-3.3 diff summarizers..."]);
+      setSimLogs(prev => [...prev, "📸 [Console] Querying Gemini 2.5 UI auditors..."]);
       
       const response = await fetch(`${BACKEND_URL}/api/pr/audit-repo`, {
         method: "POST",
@@ -247,21 +246,22 @@ export default function App() {
       if (data.status === "success") {
         setSimLogs(prev => [
           ...prev,
-          "💾 [Console] PR Audit successfully saved in Supabase database!",
-          "💬 [Console] Slack card alert successfully broadcast!",
+          `💾 [Console] Sync status: ${data.message}`,
           "🎉 [Console] Live audit execution complete!"
         ]);
         
         await fetchAudits();
         
-        setTimeout(() => {
-          setSelectedAuditId(data.audit.id);
-          setActiveTab('dashboard');
-        }, 500);
+        if (data.audits && data.audits.length > 0) {
+          setTimeout(() => {
+            setSelectedAuditId(data.audits[0].id);
+            setActiveTab('dashboard');
+          }, 500);
+        }
       } else {
-        const errorDetail = data.detail || "Failed to fetch PR details from GitHub.";
+        const errorDetail = data.detail || "Failed to sync PR details from GitHub.";
         setSimLogs(prev => [...prev, `❌ Error: ${errorDetail}`]);
-        alert(`Audit Trigger Failed: ${errorDetail}\n\nHint: Verify that the repo name is correct and the PR number exists on GitHub!`);
+        alert(`Audit Trigger Failed: ${errorDetail}\n\nHint: Verify that the repo name is correct and accessible.`);
       }
     } catch (e) {
       setSimLogs(prev => [
@@ -313,8 +313,6 @@ export default function App() {
             repos={repos}
             selectedRepo={selectedRepo}
             setSelectedRepo={setSelectedRepo}
-            prNumber={prNumber}
-            setPrNumber={setPrNumber}
           />
 
           {activeTab === 'dashboard' && (

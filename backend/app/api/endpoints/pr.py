@@ -215,19 +215,16 @@ async def github_webhook(request: Request):
 
 class AuditRepoRequest(BaseModel):
     repository: str
-    pr_number: int
+    pr_number: Optional[int] = None
 
 @router.post("/audit-repo")
 async def audit_repository_pr(payload: AuditRepoRequest):
     """
-    Manually triggers a real-time audit for a specific GitHub Repository Pull Request.
-    Fetches PR details and raw diffs directly from GitHub API, runs analyses, and saves results.
+    Triggers real-time audits for un-audited open PRs or a specific PR.
     """
     repository = payload.repository
     pr_number = payload.pr_number
     
-    # 1. Fetch Pull Request details (Title, Author, Body) from GitHub API
-    detail_url = f"https://api.github.com/repos/{repository}/pulls/{pr_number}"
     headers = {
         "User-Agent": "Reviewly-Auditor"
     }
@@ -235,92 +232,125 @@ async def audit_repository_pr(payload: AuditRepoRequest):
     if github_token:
         headers["Authorization"] = f"token {github_token}"
         
-    try:
-        async with httpx.AsyncClient() as client:
-            meta_resp = await client.get(detail_url, headers=headers, timeout=10.0)
-            
-            # Fallback in case of a stale or invalid GITHUB_TOKEN in OS env
-            if meta_resp.status_code == 401 and github_token:
-                print("Warning: GITHUB_TOKEN from system environment returned 401. Retrying request unauthenticated...")
+    # List of PR numbers to audit
+    prs_to_audit = []
+    
+    async with httpx.AsyncClient() as client:
+        # If no specific PR number is requested, auto-scan open PRs from GitHub
+        if pr_number is None:
+            list_url = f"https://api.github.com/repos/{repository}/pulls?state=open"
+            list_resp = await client.get(list_url, headers=headers, timeout=10.0)
+            if list_resp.status_code == 401 and github_token:
+                # Fallback unauthenticated
                 headers.pop("Authorization", None)
-                meta_resp = await client.get(detail_url, headers=headers, timeout=10.0)
+                list_resp = await client.get(list_url, headers=headers, timeout=10.0)
+            
+            if list_resp.status_code != 200:
+                raise HTTPException(status_code=list_resp.status_code, detail=f"Failed to fetch open PRs from GitHub: {list_resp.text}")
                 
-            if meta_resp.status_code != 200:
-                raise HTTPException(status_code=meta_resp.status_code, detail=f"Failed to fetch PR details from GitHub: {meta_resp.text}")
-            
-            meta_data = meta_resp.json()
-            title = meta_data.get("title", f"PR #{pr_number}")
-            author = meta_data.get("user", {}).get("login", "unknown")
-            pr_body = meta_data.get("body") or ""
-            
-            # Fetch Raw Diff Text
-            diff_headers = {**headers, "Accept": "application/vnd.github.v3.diff"}
-            diff_resp = await client.get(detail_url, headers=diff_headers, timeout=15.0)
-            if diff_resp.status_code != 200:
-                raise HTTPException(status_code=diff_resp.status_code, detail=f"Failed to fetch PR diff from GitHub: {diff_resp.text}")
-            
-            git_diff = diff_resp.text
-            
-    except Exception as e:
-        if isinstance(e, HTTPException):
-            raise e
-        raise HTTPException(status_code=500, detail=f"Error connecting to GitHub API: {str(e)}")
-        
-    # 2. Extract before/after screenshots from PR description using Regex
-    image_pattern = r'!\[.*?\]\((https?://.*?)\)'
-    images = re.findall(image_pattern, pr_body)
-    
-    if len(images) < 2:
-        url_pattern = r'(https?://[^\s)]+\.(?:png|jpg|jpeg|gif))'
-        found_urls = re.findall(url_pattern, pr_body)
-        for url in found_urls:
-            if url not in images:
-                images.append(url)
-                
-    before_url = images[0] if len(images) > 0 else None
-    after_url = images[1] if len(images) > 1 else None
-    
-    # 3. Trigger the full Reviewly audit pipeline
-    ai_summary = groq_service.summarize_diff(git_diff)
-    visual_changes, ai_risks = gemini_service.analyze_ui_changes(
-        git_diff=git_diff,
-        before_url=before_url,
-        after_url=after_url
-    )
-    final_summary = f"{ai_summary}\n\n*Visual Updates:*\n{visual_changes}"
-    
-    # 4. Write record to Supabase
-    try:
-        audit = supabase_service.create_audit(
-            pr_number=pr_number,
-            title=title,
-            author=author,
-            repository=repository,
-            git_diff=git_diff,
-            before_screenshot_url=before_url,
-            after_screenshot_url=after_url,
-            ai_summary=final_summary,
-            ai_risks=ai_risks
-        )
-    except Exception as e:
-        # Gracefully serve existing record on duplicate key violations
-        if "duplicate" in str(e) or "23505" in str(e):
-            audit = supabase_service.get_audit_by_number(repository, pr_number)
-            if not audit:
-                raise HTTPException(status_code=500, detail="Audit record already exists, but failed to fetch it.")
+            open_prs = list_resp.json()
+            for pr in open_prs:
+                num = pr["number"]
+                # Check if already audited in Supabase
+                existing = supabase_service.get_audit_by_number(repository, num)
+                if not existing:
+                    prs_to_audit.append(num)
         else:
-            raise HTTPException(status_code=500, detail=f"Database write error: {str(e)}")
+            prs_to_audit.append(pr_number)
+            
+    if not prs_to_audit:
+        return {
+            "status": "success", 
+            "message": "All open pull requests are already audited.", 
+            "audited_count": 0,
+            "audits": []
+        }
         
-    # 5. Broadcast to Slack
-    slack_service.send_pr_notification(
-        audit_id=audit["id"],
-        pr_number=pr_number,
-        title=title,
-        author=author,
-        repository=repository,
-        ai_summary=final_summary,
-        ai_risks=ai_risks,
-        portal_base_url="http://localhost:5173"
-    )
+    newly_audited = []
     
-    return {"status": "success", "audit": audit}
+    # Process each PR that needs an audit
+    for num in prs_to_audit:
+        detail_url = f"https://api.github.com/repos/{repository}/pulls/{num}"
+        try:
+            async with httpx.AsyncClient() as client:
+                meta_resp = await client.get(detail_url, headers=headers, timeout=10.0)
+                if meta_resp.status_code != 200:
+                    continue # Skip this PR if we can't fetch it
+                    
+                meta_data = meta_resp.json()
+                title = meta_data.get("title", f"PR #{num}")
+                author = meta_data.get("user", {}).get("login", "unknown")
+                pr_body = meta_data.get("body") or ""
+                
+                # Fetch Raw Diff Text
+                diff_headers = {**headers, "Accept": "application/vnd.github.v3.diff"}
+                diff_resp = await client.get(detail_url, headers=diff_headers, timeout=15.0)
+                if diff_resp.status_code != 200:
+                    continue
+                
+                git_diff = diff_resp.text
+                
+        except Exception:
+            continue
+            
+        # Extract before/after screenshots
+        image_pattern = r'!\[.*?\]\((https?://.*?)\)'
+        images = re.findall(image_pattern, pr_body)
+        if len(images) < 2:
+            url_pattern = r'(https?://[^\s)]+\.(?:png|jpg|jpeg|gif))'
+            found_urls = re.findall(url_pattern, pr_body)
+            for url in found_urls:
+                if url not in images:
+                    images.append(url)
+                    
+        before_url = images[0] if len(images) > 0 else None
+        after_url = images[1] if len(images) > 1 else None
+        
+        # Trigger the full Reviewly audit pipeline
+        ai_summary = groq_service.summarize_diff(git_diff)
+        visual_changes, ai_risks = gemini_service.analyze_ui_changes(
+            git_diff=git_diff,
+            before_url=before_url,
+            after_url=after_url
+        )
+        final_summary = f"{ai_summary}\n\n*Visual Updates:*\n{visual_changes}"
+        
+        # Write record to Supabase
+        try:
+            audit = supabase_service.create_audit(
+                pr_number=num,
+                title=title,
+                author=author,
+                repository=repository,
+                git_diff=git_diff,
+                before_screenshot_url=before_url,
+                after_screenshot_url=after_url,
+                ai_summary=final_summary,
+                ai_risks=ai_risks
+            )
+        except Exception as e:
+            if "duplicate" in str(e) or "23505" in str(e):
+                audit = supabase_service.get_audit_by_number(repository, num)
+            else:
+                continue
+                
+        if audit:
+            # Broadcast to Slack
+            slack_service.send_pr_notification(
+                audit_id=audit["id"],
+                pr_number=num,
+                title=title,
+                author=author,
+                repository=repository,
+                ai_summary=final_summary,
+                ai_risks=ai_risks,
+                portal_base_url="http://localhost:5173"
+            )
+            newly_audited.append(audit)
+            
+    return {
+        "status": "success", 
+        "message": f"Successfully audited {len(newly_audited)} new pull requests.", 
+        "audited_count": len(newly_audited),
+        "audits": newly_audited
+    }

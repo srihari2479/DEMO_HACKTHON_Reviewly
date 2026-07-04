@@ -9,6 +9,10 @@ class GroqService:
         if not git_diff or git_diff.strip() == "":
             return "No code changes detected in this pull request."
 
+        # Truncate large git diffs to prevent exceeding Groq TPM token limits
+        if len(git_diff) > 15000:
+            git_diff = git_diff[:15000] + "\n\n[... Git diff truncated to prevent token limits ...]"
+
         prompt = f"""You are an expert technical translator. Your job is to read raw code changes (git diff) and explain exactly what changed in simple, direct, non-technical English. 
 - Focus only on user-facing features (like new forms, updated buttons, color adjustments, routing updates).
 - Explain the user benefit or effect.
