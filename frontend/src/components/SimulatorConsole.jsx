@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, RefreshCw, GitPullRequest } from 'lucide-react';
+import { RefreshCw, GitPullRequest } from 'lucide-react';
 
 export default function SimulatorConsole({
   isSimulatorOpen,
@@ -21,8 +21,8 @@ export default function SimulatorConsole({
       <div 
         className="dev-sandbox-banner" 
         onClick={(e) => {
-          // Open the modal, unless user clicked dropdown selection, close button, or trigger button explicitly
-          if (e.target.closest('.icon-button') || e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') {
+          // Open the modal, unless user clicked dropdown selection or trigger button explicitly
+          if (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') {
             return;
           }
           setIsConsoleModalOpen(true);

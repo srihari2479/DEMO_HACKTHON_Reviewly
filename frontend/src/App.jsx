@@ -228,19 +228,15 @@ export default function App() {
     }
   };
 
-  const getTimestamp = () => {
-    const now = new Date();
-    const pad = (num) => String(num).padStart(2, '0');
-    return `[${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}]`;
-  };
-
   const triggerSimulation = async () => {
+    const getLogTime = () => new Date().toLocaleTimeString('en-US', { hour12: false });
+    
     setIsConsoleModalOpen(true);
     setIsSimulating(true);
     setSimLogs([
-      `${getTimestamp()} 🚀 [Console] Connecting to GitHub API for repository: ${selectedRepo}...`,
-      `${getTimestamp()} 📡 [Console] Querying all active open Pull Requests...`,
-      `${getTimestamp()} 📡 [Console] Checking for un-audited updates...`
+      `[${getLogTime()}] 🚀 Connecting to GitHub API for repository: ${selectedRepo}...`,
+      `[${getLogTime()}] 📡 Querying all active open Pull Requests...`,
+      `[${getLogTime()}] 📡 Checking for un-audited updates...`
     ]);
 
     const payload = {
@@ -248,8 +244,8 @@ export default function App() {
     };
 
     try {
-      setSimLogs(prev => [...prev, `${getTimestamp()} 🤖 [Console] Querying Groq Llama-3.3 diff summarizers...`]);
-      setSimLogs(prev => [...prev, `${getTimestamp()} 📸 [Console] Querying Gemini 2.5 UI auditors...`]);
+      setSimLogs(prev => [...prev, `[${getLogTime()}] 🤖 Querying Groq Llama-3.3 diff summarizers...`]);
+      setSimLogs(prev => [...prev, `[${getLogTime()}] 📸 Querying Gemini 2.5 UI auditors...`]);
       
       const response = await fetch(`${BACKEND_URL}/api/pr/audit-repo`, {
         method: "POST",
@@ -261,8 +257,8 @@ export default function App() {
       if (data.status === "success") {
         setSimLogs(prev => [
           ...prev,
-          `${getTimestamp()} 💾 [Console] Sync status: ${data.message}`,
-          `${getTimestamp()} 🎉 [Console] Live audit execution complete!`
+          `[${getLogTime()}] 💾 Sync status: ${data.message}`,
+          `[${getLogTime()}] 🎉 Live audit execution complete!`
         ]);
         
         await fetchAudits();
@@ -275,13 +271,13 @@ export default function App() {
         }
       } else {
         const errorDetail = data.detail || "Failed to sync PR details from GitHub.";
-        setSimLogs(prev => [...prev, `${getTimestamp()} ❌ Error: ${errorDetail}`]);
+        setSimLogs(prev => [...prev, `[${getLogTime()}] ❌ Error: ${errorDetail}`]);
         alert(`Audit Trigger Failed: ${errorDetail}\n\nHint: Verify that the repo name is correct and accessible.`);
       }
     } catch (e) {
       setSimLogs(prev => [
         ...prev,
-        `${getTimestamp()} ❌ Connection Error: Backend API not reachable. Ensure uvicorn is running on port 7860.`
+        `[${getLogTime()}] ❌ Connection Error: Backend API not reachable. Ensure uvicorn is running on port 7860.`
       ]);
       alert("Simulation failed: Unable to connect to the FastAPI backend. Check if uvicorn is running.");
     } finally {
