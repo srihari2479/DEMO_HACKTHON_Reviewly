@@ -8,20 +8,112 @@ const GithubIcon = (props) => (
 
 export default function Login({ loginWithGitHub }) {
   return (
-    <div className="login-container">
-      <div className="login-card glass-panel glass-panel-glow">
-        <div className="login-logo">&lt;R&gt;</div>
-        <h2>Sign in to Reviewly</h2>
+    <div className="login-container" style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 120px)' }}>
+      {/* Background Aurora Glow Blobs */}
+      <div style={{
+        position: 'absolute',
+        top: '-15%',
+        left: '-10%',
+        width: '60vw',
+        height: '60vh',
+        background: 'radial-gradient(circle, rgba(20, 184, 166, 0.14) 0%, rgba(20, 184, 166, 0) 70%)',
+        filter: 'blur(100px)',
+        zIndex: 0,
+        pointerEvents: 'none'
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '-15%',
+        right: '-10%',
+        width: '65vw',
+        height: '65vh',
+        background: 'radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, rgba(6, 182, 212, 0) 70%)',
+        filter: 'blur(120px)',
+        zIndex: 0,
+        pointerEvents: 'none'
+      }} />
+
+      {/* Center login card */}
+      <div 
+        className="login-card glass-panel" 
+        style={{ 
+          zIndex: 1, 
+          background: 'rgba(11, 21, 41, 0.78)', /* glassy dark navy 78% opacity */
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderColor: 'rgba(20, 184, 166, 0.25)',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.55), 0 0 30px rgba(20, 184, 166, 0.15)',
+          padding: '44px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '24px'
+        }}
+      >
+        <img 
+          src="/logo_icon.png" 
+          alt="Reviewly Logo Mark" 
+          style={{ 
+            width: '60px', 
+            height: '60px', 
+            objectFit: 'contain', 
+            marginBottom: '4px',
+            filter: 'drop-shadow(0 0 10px rgba(20, 184, 166, 0.3))'
+          }} 
+        />
+        
+        <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.015em' }}>
+          Sign in to Reviewly
+        </h2>
+        
         <button 
           className="btn-primary"
           onClick={loginWithGitHub}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            width: '100%',
+            height: '46px',
+            fontWeight: 700,
+            fontSize: '14px',
+            background: 'linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%)',
+            boxShadow: '0 0 20px rgba(20, 184, 166, 0.25)',
+            border: 'none',
+            borderRadius: '24px',
+            color: '#0f172a',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 0 25px rgba(20, 184, 166, 0.35)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 0 20px rgba(20, 184, 166, 0.25)';
+          }}
         >
           <GithubIcon size={20} /> Login with GitHub
         </button>
+        
         <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
           Secure authentication via GitHub OAuth
         </span>
-        <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(245, 158, 11, 0.08)', border: '1px dashed rgba(245, 158, 11, 0.3)', borderRadius: '8px', fontSize: '11px', color: 'var(--status-review-text)', textAlign: 'left', lineHeight: '1.4' }}>
+
+        {/* Restyled Prerequisite Notice Box */}
+        <div style={{ 
+          marginTop: '8px', 
+          padding: '14px 16px', 
+          background: 'rgba(245, 158, 11, 0.06)', 
+          border: '1px dashed rgba(245, 158, 11, 0.25)', 
+          borderRadius: '10px', 
+          fontSize: '11px', 
+          color: 'var(--status-review-text)', 
+          textAlign: 'left', 
+          lineHeight: '1.5' 
+        }}>
           <strong>Prerequisite:</strong> Enable the GitHub auth provider in your Supabase Console under <em>Authentication &gt; Providers</em> before clicking login.
         </div>
       </div>

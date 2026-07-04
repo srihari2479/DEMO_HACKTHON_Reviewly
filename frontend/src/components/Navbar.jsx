@@ -28,7 +28,7 @@ export default function Navbar({
   }, [setIsNotificationsOpen, setIsProfileOpen]);
 
   return (
-    <header className="navbar glass-panel">
+    <header className={`navbar ${user ? 'glass-panel' : ''}`} style={!user ? { border: 'none', background: 'transparent', boxShadow: 'none' } : {}}>
       <div className="brand">
         <img 
           src="/logo.png" 
