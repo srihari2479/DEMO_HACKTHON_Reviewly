@@ -73,46 +73,25 @@ export default function Login({ loginWithGitHub }) {
           transition: 'transform 0.2s ease-out'
         }}
       >
-        {/* Logo and Upward Triangle Frame Container */}
-        <div style={{ 
-          position: 'relative', 
-          width: '120px', 
-          height: '120px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          marginBottom: '8px' 
+        {/* Logo inside a light grey rounded box */}
+        <div style={{
+          width: '96px',
+          height: '96px',
+          borderRadius: '20px',
+          background: 'rgba(226, 232, 240, 0.18)',
+          border: '1px solid rgba(226, 232, 240, 0.12)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '8px'
         }}>
-          {/* Proportional upward-pointing rounded-corner triangle shape */}
-          <div style={{ 
-            position: 'absolute', 
-            width: '120px', 
-            height: '120px', 
-            zIndex: 0, 
-            filter: 'drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25))' 
-          }}>
-            <svg viewBox="0 0 100 100" width="100%" height="100%">
-              <path 
-                d="M 50 18 L 18 92 L 82 92 Z" 
-                fill="#f8fafc" 
-                stroke="#f8fafc" 
-                strokeWidth="12" 
-                strokeLinejoin="round" 
-              />
-            </svg>
-          </div>
-
-          {/* Full Logo Mark on top (icon + "Reviewly" wordmark text visible) */}
           <img 
             src="/logo_icon.png" 
             alt="Reviewly Logo" 
             style={{ 
-              position: 'absolute',
               width: '68px', 
               height: '68px', 
-              objectFit: 'contain', 
-              zIndex: 1,
-              transform: 'translateY(6px)' /* Center it vertically relative to visual mass */
+              objectFit: 'contain'
             }} 
           />
         </div>
@@ -158,21 +137,7 @@ export default function Login({ loginWithGitHub }) {
           Secure authentication via GitHub OAuth
         </span>
 
-        {/* Prerequisite Notice Box */}
-        <div style={{ 
-          marginTop: '8px', 
-          padding: '14px 16px', 
-          background: 'rgba(245, 158, 11, 0.06)', 
-          border: '1px dashed rgba(245, 158, 11, 0.25)', 
-          borderRadius: '10px', 
-          fontSize: '11px', 
-          color: 'var(--status-review-text)', 
-          textAlign: 'left', 
-          lineHeight: '1.5',
-          margin: 0
-        }}>
-          <strong>Prerequisite:</strong> Enable the GitHub auth provider in your Supabase Console under <em>Authentication &gt; Providers</em> before clicking login.
-        </div>
+
       </div>
     </div>
   );
