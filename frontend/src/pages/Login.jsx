@@ -51,7 +51,7 @@ export default function Login({ loginWithGitHub }) {
         zIndex: 1
       }}
     >
-      {/* Center login card */}
+      {/* Center login card (nudged slightly upward using transform) */}
       <div 
         className="login-card glass-panel" 
         style={{ 
@@ -68,20 +68,54 @@ export default function Login({ loginWithGitHub }) {
           gap: '24px',
           width: '100%',
           maxWidth: '440px',
-          margin: 0
+          margin: 0,
+          transform: 'translateY(-40px)', /* Nudge slightly upward */
+          transition: 'transform 0.2s ease-out'
         }}
       >
-        <img 
-          src="/logo_icon.png" 
-          alt="Reviewly Logo Mark" 
-          style={{ 
-            width: '80px', 
-            height: '80px', 
-            objectFit: 'contain', 
-            marginBottom: '4px',
-            filter: 'drop-shadow(0 0 10px rgba(20, 184, 166, 0.35))'
-          }} 
-        />
+        {/* Logo and Rounded Inverted Triangle Frame Container */}
+        <div style={{ 
+          position: 'relative', 
+          width: '110px', 
+          height: '110px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          marginBottom: '8px' 
+        }}>
+          {/* Inverted rounded-corner triangle shape */}
+          <div style={{ 
+            position: 'absolute', 
+            width: '110px', 
+            height: '110px', 
+            zIndex: 0, 
+            filter: 'drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3))' 
+          }}>
+            <svg viewBox="0 0 100 100" width="100%" height="100%">
+              <path 
+                d="M 18 20 L 82 20 L 50 78 Z" 
+                fill="#f8fafc" 
+                stroke="#f8fafc" 
+                strokeWidth="14" 
+                strokeLinejoin="round" 
+              />
+            </svg>
+          </div>
+
+          {/* Logo Mark on top */}
+          <img 
+            src="/logo_icon.png" 
+            alt="Reviewly Logo Mark" 
+            style={{ 
+              position: 'absolute',
+              width: '110px', 
+              height: '110px', 
+              objectFit: 'contain', 
+              zIndex: 1,
+              transform: 'translateY(-3px)' /* Visual balance tweak */
+            }} 
+          />
+        </div>
         
         <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.015em' }}>
           Sign in to Reviewly
