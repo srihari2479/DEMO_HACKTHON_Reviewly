@@ -42,9 +42,6 @@ export default function SimulatorConsole({
           <span className="dev-text" style={{ fontSize: '14px' }}>
             🛠️ <strong>Live PR Audit Console:</strong> Click anywhere on this banner to inspect live logs, or select your repo below and run a fresh audit.
           </span>
-          <button className="icon-button" onClick={() => setIsSimulatorOpen(false)} style={{ color: 'var(--primary-teal)' }}>
-            <X size={16} />
-          </button>
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
