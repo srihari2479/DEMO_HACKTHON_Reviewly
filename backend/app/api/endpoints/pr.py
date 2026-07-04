@@ -222,8 +222,15 @@ async def audit_repository_pr(payload: AuditRepoRequest):
     """
     Triggers real-time audits for un-audited open PRs or a specific PR.
     """
-    repository = payload.repository
+    db_repository = payload.repository
     pr_number = payload.pr_number
+    
+    # Strip user email suffix for GitHub API calls
+    if "#" in db_repository:
+        repository, user_tag = db_repository.split("#", 1)
+    else:
+        repository = db_repository
+        user_tag = ""
     
     headers = {
         "User-Agent": "Reviewly-Auditor"
@@ -252,7 +259,7 @@ async def audit_repository_pr(payload: AuditRepoRequest):
             for pr in open_prs:
                 num = pr["number"]
                 # Check if already audited in Supabase
-                existing = supabase_service.get_audit_by_number(repository, num)
+                existing = supabase_service.get_audit_by_number(db_repository, num)
                 if not existing:
                     prs_to_audit.append(num)
         else:
@@ -321,7 +328,7 @@ async def audit_repository_pr(payload: AuditRepoRequest):
                 pr_number=num,
                 title=title,
                 author=author,
-                repository=repository,
+                repository=db_repository,
                 git_diff=git_diff,
                 before_screenshot_url=before_url,
                 after_screenshot_url=after_url,
@@ -330,7 +337,7 @@ async def audit_repository_pr(payload: AuditRepoRequest):
             )
         except Exception as e:
             if "duplicate" in str(e) or "23505" in str(e):
-                audit = supabase_service.get_audit_by_number(repository, num)
+                audit = supabase_service.get_audit_by_number(db_repository, num)
             else:
                 continue
                 
