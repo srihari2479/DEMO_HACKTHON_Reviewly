@@ -238,6 +238,13 @@ async def audit_repository_pr(payload: AuditRepoRequest):
     try:
         async with httpx.AsyncClient() as client:
             meta_resp = await client.get(detail_url, headers=headers, timeout=10.0)
+            
+            # Fallback in case of a stale or invalid GITHUB_TOKEN in OS env
+            if meta_resp.status_code == 401 and github_token:
+                print("Warning: GITHUB_TOKEN from system environment returned 401. Retrying request unauthenticated...")
+                headers.pop("Authorization", None)
+                meta_resp = await client.get(detail_url, headers=headers, timeout=10.0)
+                
             if meta_resp.status_code != 200:
                 raise HTTPException(status_code=meta_resp.status_code, detail=f"Failed to fetch PR details from GitHub: {meta_resp.text}")
             

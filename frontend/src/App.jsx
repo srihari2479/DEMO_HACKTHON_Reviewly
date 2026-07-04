@@ -13,33 +13,7 @@ import History from './pages/History';
 import Settings from './pages/Settings';
 import Repositories from './pages/Repositories';
 
-// Fallback seed data in case Supabase is blank
-const SEED_AUDITS = [
-  {
-    id: "502d3641-abbf-4bfc-b478-40c43e4a9b64",
-    pr_number: 104,
-    title: "Redesign Login and Add Google OAuth",
-    author: "dev_sarah",
-    repository: "Reviewly/frontend",
-    status: "pending_review",
-    git_diff: `diff --git a/components/Login.js b/components/Login.js
-index 838afd..92fa1b 100644
---- a/components/Login.js
-+++ b/components/Login.js
-@@ -10,6 +10,12 @@ export default function Login() {
-       <button className="bg-indigo-600 text-white">Sign In</button>
-+      <button className="bg-blue-500 text-white flex items-center">
-+        <img src="/google-icon.svg" /> Sign in with Google
-+      </button>
-+      <a href="/signup" className="text-gray-500 mt-8">Don''t have an account? Sign Up</a>`,
-    before_screenshot_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600",
-    after_screenshot_url: "https://images.unsplash.com/photo-1618005198143-e528346d9a59?w=600",
-    ai_summary: "* Added a blue Google Sign-In button, allowing users to authenticate via Google.\n* Repositioned container spacing and modified margin elements.\n* Inserted a link for signup below the primary login forms.",
-    ai_risks: "* Text Typo/Display Error: The link contains an escaped double single quote \"Don''t\" which displays incorrectly.\n* Button Color Inconsistency: The new blue Google button contrast differs from the existing dark button layout.",
-    reviewer_comments: null,
-    created_at: new Date(Date.now() - 3600000).toISOString()
-  }
-];
+
 
 export default function App() {
   const [user, setUser] = useState(null);
