@@ -73,7 +73,7 @@ export default function Login({ loginWithGitHub }) {
           transition: 'transform 0.2s ease-out'
         }}
       >
-        {/* Logo and Rounded Inverted Triangle Frame Container */}
+        {/* Logo and Upward Triangle Frame Container */}
         <div style={{ 
           position: 'relative', 
           width: '110px', 
@@ -83,7 +83,7 @@ export default function Login({ loginWithGitHub }) {
           justifyContent: 'center', 
           marginBottom: '8px' 
         }}>
-          {/* Inverted rounded-corner triangle shape */}
+          {/* Upward-pointing rounded-corner triangle shape */}
           <div style={{ 
             position: 'absolute', 
             width: '110px', 
@@ -93,7 +93,7 @@ export default function Login({ loginWithGitHub }) {
           }}>
             <svg viewBox="0 0 100 100" width="100%" height="100%">
               <path 
-                d="M 18 20 L 82 20 L 50 78 Z" 
+                d="M 50 22 L 18 78 L 82 78 Z" 
                 fill="#f8fafc" 
                 stroke="#f8fafc" 
                 strokeWidth="14" 
@@ -102,19 +102,26 @@ export default function Login({ loginWithGitHub }) {
             </svg>
           </div>
 
-          {/* Logo Mark on top */}
-          <img 
-            src="/logo_icon.png" 
-            alt="Reviewly Logo Mark" 
-            style={{ 
-              position: 'absolute',
-              width: '110px', 
-              height: '110px', 
-              objectFit: 'contain', 
-              zIndex: 1,
-              transform: 'translateY(-3px)' /* Visual balance tweak */
-            }} 
-          />
+          {/* Cropped Logo Mark on top (Hides "Reviewly" wordmark text to show icon only) */}
+          <div style={{
+            position: 'absolute',
+            width: '68px',
+            height: '56px',
+            overflow: 'hidden',
+            zIndex: 1,
+            transform: 'translateY(6px)' /* Visual center balance tweak for upward triangle */
+          }}>
+            <img 
+              src="/logo_icon.png" 
+              alt="Reviewly Icon Mark" 
+              style={{ 
+                width: '100%', 
+                height: '84px', 
+                objectFit: 'cover', 
+                objectPosition: 'top'
+              }} 
+            />
+          </div>
         </div>
         
         <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.015em' }}>
