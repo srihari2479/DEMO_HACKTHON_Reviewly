@@ -29,20 +29,20 @@ export default function Navbar({
 
   return (
     <header className="navbar glass-panel">
-      <div className="brand">
-        <div style={{ 
-          background: 'rgba(255, 255, 255, 0.95)', 
-          padding: '4px 12px', 
-          borderRadius: '8px', 
-          display: 'flex', 
+      <div className="brand" style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.95)',
+          padding: '6px 12px',
+          borderRadius: '8px',
+          display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
         }}>
           <img 
-            src="/logo.png" 
-            alt="Reviewly" 
-            style={{ height: '26px', width: 'auto', objectFit: 'contain' }} 
+            src="/combined_logo.png" 
+            alt="Reviewly Logo" 
+            style={{ height: '24px', width: 'auto', objectFit: 'contain' }} 
           />
         </div>
       </div>
