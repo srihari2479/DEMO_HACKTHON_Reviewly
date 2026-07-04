@@ -2,6 +2,7 @@ import React from 'react';
 import { GitPullRequest, Clock, CheckCircle } from 'lucide-react';
 import DiffSlider from '../components/DiffSlider';
 
+// Dashboard
 export default function Dashboard({
   audits = [],
   selectedAuditId,
