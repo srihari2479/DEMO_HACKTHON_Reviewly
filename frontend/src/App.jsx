@@ -237,8 +237,10 @@ index 92fa1b..73ac0a 100644
           ...prev,
           "💾 [Simulator] PR Audit written to Supabase successfully!",
           "💬 [Simulator] Slack message alert triggered!",
-          "🎉 [Simulator] Process completed successfully! Real-time DB listeners updated UI."
+          "🎉 [Simulator] Process completed successfully! Live database updated."
         ]);
+        
+        await fetchAudits();
         
         setTimeout(() => {
           setSelectedAuditId(data.audit.id);
@@ -250,27 +252,9 @@ index 92fa1b..73ac0a 100644
     } catch (e) {
       setSimLogs(prev => [
         ...prev,
-        "⚠️ Backend API not reachable. Simulating AI analysis locally...",
-        "💾 Local database fallback record injected."
+        "❌ Connection Error: Backend API not reachable. Ensure uvicorn is running on port 7860."
       ]);
-      const mockNewAudit = {
-        id: `simulated-id-${Date.now()}`,
-        pr_number: 105,
-        title: "Redesign Pricing Tiers and Add Toggle Button",
-        author: "dev_alex",
-        repository: "Reviewly/frontend",
-        status: "pending_review",
-        git_diff: payload.git_diff,
-        before_screenshot_url: payload.before_screenshot_url,
-        after_screenshot_url: payload.after_screenshot_url,
-        ai_summary: "* Added an annual/monthly pricing toggle button.\n* Changed pricing premium plans text to show discounted annual billings.",
-        ai_risks: "* Visual Clipping Risk: The new toggle container overlaps with top nav menu on small viewport profiles.\n* Missing Info Tooltip: Annual billing calculations are not detailed near the checkout links.",
-        reviewer_comments: null,
-        created_at: new Date().toISOString()
-      };
-      setAudits([mockNewAudit, ...audits]);
-      setSelectedAuditId(mockNewAudit.id);
-      setActiveTab('dashboard');
+      alert("Simulation failed: Unable to connect to the FastAPI backend. Check if uvicorn is running.");
     } finally {
       setIsSimulating(false);
     }
