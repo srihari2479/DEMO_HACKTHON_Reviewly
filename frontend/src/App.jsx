@@ -333,30 +333,30 @@ export default function App() {
       ) : (
         /* Authenticated Main Tabs */
         <main>
-          {/* Dev Simulator Panel Header */}
-          <SimulatorConsole 
-            isSimulatorOpen={isSimulatorOpen}
-            setIsSimulatorOpen={setIsSimulatorOpen}
-            isSimulating={isSimulating}
-            triggerSimulation={triggerSimulation}
-            simLogs={simLogs}
-            repos={repos}
-            selectedRepo={selectedRepo}
-            setSelectedRepo={setSelectedRepo}
-            isConsoleModalOpen={isConsoleModalOpen}
-            setIsConsoleModalOpen={setIsConsoleModalOpen}
-          />
-
           {activeTab === 'dashboard' && (
-            <Dashboard 
-              audits={userAudits}
-              selectedAuditId={selectedAuditId}
-              setSelectedAuditId={setSelectedAuditId}
-              activeAudit={activeAudit}
-              sliderPosition={sliderPosition}
-              setSliderPosition={setSliderPosition}
-              setActiveTab={setActiveTab}
-            />
+            <>
+              <SimulatorConsole 
+                isSimulatorOpen={isSimulatorOpen}
+                setIsSimulatorOpen={setIsSimulatorOpen}
+                isSimulating={isSimulating}
+                triggerSimulation={triggerSimulation}
+                simLogs={simLogs}
+                repos={repos}
+                selectedRepo={selectedRepo}
+                setSelectedRepo={setSelectedRepo}
+                isConsoleModalOpen={isConsoleModalOpen}
+                setIsConsoleModalOpen={setIsConsoleModalOpen}
+              />
+              <Dashboard 
+                audits={userAudits}
+                selectedAuditId={selectedAuditId}
+                setSelectedAuditId={setSelectedAuditId}
+                activeAudit={activeAudit}
+                sliderPosition={sliderPosition}
+                setSliderPosition={setSliderPosition}
+                setActiveTab={setActiveTab}
+              />
+            </>
           )}
 
           {activeTab === 'prs' && (

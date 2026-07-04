@@ -15,10 +15,11 @@ export default function Navbar({
   return (
     <header className="navbar glass-panel">
       <div className="brand">
-        <div className="overlapping-logo">
-          <div className="logo-square square-white"></div>
-          <div className="logo-square square-teal">R</div>
-        </div>
+        <img 
+          src="/logo.png" 
+          alt="Reviewly Logo" 
+          style={{ height: '34px', width: 'auto', objectFit: 'contain', marginRight: '8px' }} 
+        />
         <span className="brand-wordmark">Reviewly</span>
       </div>
       
