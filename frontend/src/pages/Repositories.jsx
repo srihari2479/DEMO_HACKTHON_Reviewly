@@ -1,69 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabase';
+import React, { useState } from 'react';
 import { Shield, RefreshCw, CheckCircle2, AlertCircle, Star, GitFork, AlertTriangle } from 'lucide-react';
 
-export default function Repositories({ user }) {
-  const [repos, setRepos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState(null);
+export default function Repositories({ repos = [], setRepos, loading, errorMsg, user }) {
   const [installingId, setInstallingId] = useState(null);
-
-  // Fetch real-time GitHub repositories of the logged-in user
-  useEffect(() => {
-    const fetchGitHubRepos = async () => {
-      setLoading(true);
-      setErrorMsg(null);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const providerToken = session?.provider_token;
-        
-        if (!providerToken) {
-          setErrorMsg("GitHub Access Token not found in your session. Please verify that GitHub Provider Auth is configured correctly.");
-          setLoading(false);
-          return;
-        }
-
-        // Fetch user's repos sorted by recent updates
-        const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=15', {
-          headers: {
-            'Authorization': `Bearer ${providerToken}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        });
-        
-        if (response.status === 401) {
-          setErrorMsg("GitHub token is invalid or expired. Try signing out and signing in again.");
-          setLoading(false);
-          return;
-        }
-        
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          // Format payload
-          const formatted = data.map(r => ({
-            id: r.id,
-            name: r.name,
-            owner: r.owner.login,
-            stars: r.stargazers_count,
-            forks: r.forks_count,
-            // Pre-monitor the hackathon demo repo if detected
-            monitored: r.name.toLowerCase().includes('reviewly') || r.name.toLowerCase().includes('hackthon'),
-            language: r.language || 'HTML',
-            url: r.html_url
-          }));
-          setRepos(formatted);
-        } else {
-          setErrorMsg("Failed to retrieve repositories list from GitHub.");
-        }
-      } catch (e) {
-        setErrorMsg(`Connection error to GitHub: ${e.message}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGitHubRepos();
-  }, []);
 
   const handleToggleMonitor = (repoId) => {
     const repo = repos.find(r => r.id === repoId);

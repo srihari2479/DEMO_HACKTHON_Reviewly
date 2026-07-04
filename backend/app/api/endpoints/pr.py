@@ -212,3 +212,102 @@ async def github_webhook(request: Request):
     )
     
     return {"status": "success", "audit_id": audit["id"], "action": "audited"}
+
+class AuditRepoRequest(BaseModel):
+    repository: str
+    pr_number: int
+
+@router.post("/audit-repo")
+async def audit_repository_pr(payload: AuditRepoRequest):
+    """
+    Manually triggers a real-time audit for a specific GitHub Repository Pull Request.
+    Fetches PR details and raw diffs directly from GitHub API, runs analyses, and saves results.
+    """
+    repository = payload.repository
+    pr_number = payload.pr_number
+    
+    # 1. Fetch Pull Request details (Title, Author, Body) from GitHub API
+    detail_url = f"https://api.github.com/repos/{repository}/pulls/{pr_number}"
+    headers = {
+        "User-Agent": "Reviewly-Auditor"
+    }
+    github_token = os.getenv("GITHUB_TOKEN")
+    if github_token:
+        headers["Authorization"] = f"token {github_token}"
+        
+    try:
+        async with httpx.AsyncClient() as client:
+            meta_resp = await client.get(detail_url, headers=headers, timeout=10.0)
+            if meta_resp.status_code != 200:
+                raise HTTPException(status_code=meta_resp.status_code, detail=f"Failed to fetch PR details from GitHub: {meta_resp.text}")
+            
+            meta_data = meta_resp.json()
+            title = meta_data.get("title", f"PR #{pr_number}")
+            author = meta_data.get("user", {}).get("login", "unknown")
+            pr_body = meta_data.get("body") or ""
+            
+            # Fetch Raw Diff Text
+            diff_headers = {**headers, "Accept": "application/vnd.github.v3.diff"}
+            diff_resp = await client.get(detail_url, headers=diff_headers, timeout=15.0)
+            if diff_resp.status_code != 200:
+                raise HTTPException(status_code=diff_resp.status_code, detail=f"Failed to fetch PR diff from GitHub: {diff_resp.text}")
+            
+            git_diff = diff_resp.text
+            
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Error connecting to GitHub API: {str(e)}")
+        
+    # 2. Extract before/after screenshots from PR description using Regex
+    image_pattern = r'!\[.*?\]\((https?://.*?)\)'
+    images = re.findall(image_pattern, pr_body)
+    
+    if len(images) < 2:
+        url_pattern = r'(https?://[^\s)]+\.(?:png|jpg|jpeg|gif))'
+        found_urls = re.findall(url_pattern, pr_body)
+        for url in found_urls:
+            if url not in images:
+                images.append(url)
+                
+    before_url = images[0] if len(images) > 0 else "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=600"
+    after_url = images[1] if len(images) > 1 else "https://images.unsplash.com/photo-1541462608141-2ff01dd914e0?w=600"
+    
+    # 3. Trigger the full Reviewly audit pipeline
+    ai_summary = groq_service.summarize_diff(git_diff)
+    visual_changes, ai_risks = gemini_service.analyze_ui_changes(
+        git_diff=git_diff,
+        before_url=before_url,
+        after_url=after_url
+    )
+    final_summary = f"{ai_summary}\n\n*Visual Updates:*\n{visual_changes}"
+    
+    # 4. Write record to Supabase
+    audit = supabase_service.create_audit(
+        pr_number=pr_number,
+        title=title,
+        author=author,
+        repository=repository,
+        git_diff=git_diff,
+        before_screenshot_url=before_url,
+        after_screenshot_url=after_url,
+        ai_summary=final_summary,
+        ai_risks=ai_risks
+    )
+    
+    if not audit:
+        raise HTTPException(status_code=500, detail="Failed to record audit in Supabase.")
+        
+    # 5. Broadcast to Slack
+    slack_service.send_pr_notification(
+        audit_id=audit["id"],
+        pr_number=pr_number,
+        title=title,
+        author=author,
+        repository=repository,
+        ai_summary=final_summary,
+        ai_risks=ai_risks,
+        portal_base_url="http://localhost:5173"
+    )
+    
+    return {"status": "success", "audit": audit}

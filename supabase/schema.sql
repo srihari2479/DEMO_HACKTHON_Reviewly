@@ -1,4 +1,4 @@
--- Create table for PR audits
+-- Create table for PR audits with UNIQUE constraint for repository + pr_number
 CREATE TABLE IF NOT EXISTS pr_audits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pr_number INT NOT NULL,
@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS pr_audits (
   ai_summary TEXT,
   ai_risks TEXT,
   reviewer_comments TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  CONSTRAINT unique_pr_repo UNIQUE (repository, pr_number)
 );
 
 -- Seed initial mock data for the demo
@@ -37,4 +38,4 @@ index 838afd..92fa1b 100644
   'https://images.unsplash.com/photo-1618005198143-e528346d9a59?w=600&auto=format&fit=crop&q=60', -- Mock After UI
   'Added a blue Google Sign-In button and modified container padding.',
   'High Risk: The Sign Up link has been pushed below the fold on mobile viewports due to the added button height and mt-8 margin.'
-) ON CONFLICT DO NOTHING;
+) ON CONFLICT (repository, pr_number) DO NOTHING;
