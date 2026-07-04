@@ -144,10 +144,10 @@ export default function App() {
     setIsProfileOpen(false);
   };
 
-  // 2. Fetch audits from backend API
+  // 2. Fetch audits from backend API whenever user details change
   useEffect(() => {
     fetchAudits();
-  }, []);
+  }, [user]);
 
   // 3. Connect Supabase Realtime to update dashboard lists automatically on insert/update
   useEffect(() => {
@@ -166,28 +166,21 @@ export default function App() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]); // Re-subscribe if user changes
 
   const fetchAudits = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/pr/list`);
+      const url = user?.email
+        ? `${BACKEND_URL}/api/pr/list?user_email=${encodeURIComponent(user.email)}`
+        : `${BACKEND_URL}/api/pr/list`;
+      const response = await fetch(url);
       const data = await response.json();
       if (data.status === "success") {
-        // Map audits to keep raw repository with user tag for filtering, but clean repository for UI display
-        const processed = data.data.map(audit => {
-          const rawRepo = audit.repository;
-          const displayRepo = rawRepo.includes('#') ? rawRepo.split('#')[0] : rawRepo;
-          return {
-            ...audit,
-            rawRepository: rawRepo,
-            repository: displayRepo
-          };
-        });
-        setAudits(processed);
+        setAudits(data.data);
         
         // Retain selection if valid, else select first
         setSelectedAuditId(prevId => {
-          return processed.some(a => a.id === prevId) ? prevId : (processed[0]?.id || null);
+          return data.data.some(a => a.id === prevId) ? prevId : (data.data[0]?.id || null);
         });
       }
     } catch (e) {
@@ -195,16 +188,11 @@ export default function App() {
     }
   };
 
-  const userAudits = audits.filter(audit => {
-    const rawRepo = audit.rawRepository || audit.repository;
-    if (!rawRepo.includes('#')) {
-      // Legacy audits or webhooks: fallback to check repo access
-      return repos.some(repo => repo.fullName.toLowerCase() === rawRepo.toLowerCase());
-    }
-    const [repoName, userTag] = rawRepo.split('#');
-    // Isolate by user email
-    return userTag.toLowerCase() === user?.email?.toLowerCase();
-  });
+  const userAudits = (repos.length === 0 && loadingRepos)
+    ? audits
+    : audits.filter(audit => 
+        repos.some(repo => repo.fullName.toLowerCase() === audit.repository.toLowerCase())
+      );
 
   const activeAudit = userAudits.find(a => a.id === selectedAuditId) || userAudits[0];
 
@@ -270,8 +258,11 @@ export default function App() {
     // Line 5:
     appendLog("📸 Querying Gemini 2.5 UI auditors...");
 
-    // Trigger API call in parallel with user email suffix for database chain isolation
-    const payload = { repository: `${selectedRepo}#${user.email}` };
+    // Trigger API call in parallel with user email for database chain isolation
+    const payload = { 
+      repository: selectedRepo,
+      user_email: user?.email || ""
+    };
     const apiPromise = fetch(`${BACKEND_URL}/api/pr/audit-repo`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

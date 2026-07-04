@@ -21,6 +21,7 @@ class SubmitPRRequest(BaseModel):
     before_screenshot_url: Optional[str] = None
     after_screenshot_url: Optional[str] = None
     portal_base_url: Optional[str] = "http://localhost:5173"
+    user_email: str
 
 class ReviewPRRequest(BaseModel):
     status: str # 'approved' or 'changes_requested'
@@ -55,7 +56,8 @@ def submit_pull_request(payload: SubmitPRRequest):
         before_screenshot_url=payload.before_screenshot_url,
         after_screenshot_url=payload.after_screenshot_url,
         ai_summary=final_summary,
-        ai_risks=ai_risks
+        ai_risks=ai_risks,
+        user_email=payload.user_email
     )
 
     if not audit:
@@ -76,11 +78,11 @@ def submit_pull_request(payload: SubmitPRRequest):
     return {"status": "success", "audit": audit}
 
 @router.get("/list")
-def list_pull_requests():
+def list_pull_requests(user_email: Optional[str] = None):
     """
-    Retrieves all PR audits from Supabase.
+    Retrieves all PR audits from Supabase filtered by user_email if provided.
     """
-    audits = supabase_service.list_audits()
+    audits = supabase_service.list_audits(user_email)
     return {"status": "success", "count": len(audits), "data": audits}
 
 @router.get("/{audit_id}")
@@ -216,21 +218,16 @@ async def github_webhook(request: Request):
 class AuditRepoRequest(BaseModel):
     repository: str
     pr_number: Optional[int] = None
+    user_email: str
 
 @router.post("/audit-repo")
 async def audit_repository_pr(payload: AuditRepoRequest):
     """
     Triggers real-time audits for un-audited open PRs or a specific PR.
     """
-    db_repository = payload.repository
+    repository = payload.repository
     pr_number = payload.pr_number
-    
-    # Strip user email suffix for GitHub API calls
-    if "#" in db_repository:
-        repository, user_tag = db_repository.split("#", 1)
-    else:
-        repository = db_repository
-        user_tag = ""
+    user_email = payload.user_email
     
     headers = {
         "User-Agent": "Reviewly-Auditor"
@@ -259,7 +256,7 @@ async def audit_repository_pr(payload: AuditRepoRequest):
             for pr in open_prs:
                 num = pr["number"]
                 # Check if already audited in Supabase
-                existing = supabase_service.get_audit_by_number(db_repository, num)
+                existing = supabase_service.get_audit_by_number(repository, num, user_email)
                 if not existing:
                     prs_to_audit.append(num)
         else:
@@ -328,16 +325,17 @@ async def audit_repository_pr(payload: AuditRepoRequest):
                 pr_number=num,
                 title=title,
                 author=author,
-                repository=db_repository,
+                repository=repository,
                 git_diff=git_diff,
                 before_screenshot_url=before_url,
                 after_screenshot_url=after_url,
                 ai_summary=final_summary,
-                ai_risks=ai_risks
+                ai_risks=ai_risks,
+                user_email=user_email
             )
         except Exception as e:
             if "duplicate" in str(e) or "23505" in str(e):
-                audit = supabase_service.get_audit_by_number(db_repository, num)
+                audit = supabase_service.get_audit_by_number(repository, num, user_email)
             else:
                 continue
                 
