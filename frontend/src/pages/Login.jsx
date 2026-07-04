@@ -77,23 +77,23 @@ export default function Login({ loginWithGitHub }) {
         <div style={{ 
           position: 'relative', 
           width: '120px', 
-          height: '140px', 
+          height: '120px', 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
           marginBottom: '8px' 
         }}>
-          {/* Elongated upward-pointing rounded-corner triangle shape */}
+          {/* Proportional upward-pointing rounded-corner triangle shape */}
           <div style={{ 
             position: 'absolute', 
             width: '120px', 
-            height: '140px', 
+            height: '120px', 
             zIndex: 0, 
-            filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.28))' 
+            filter: 'drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25))' 
           }}>
-            <svg viewBox="0 0 100 120" width="100%" height="100%">
+            <svg viewBox="0 0 100 100" width="100%" height="100%">
               <path 
-                d="M 50 14 L 18 108 L 82 108 Z" 
+                d="M 50 18 L 18 92 L 82 92 Z" 
                 fill="#f8fafc" 
                 stroke="#f8fafc" 
                 strokeWidth="12" 
@@ -108,11 +108,11 @@ export default function Login({ loginWithGitHub }) {
             alt="Reviewly Logo" 
             style={{ 
               position: 'absolute',
-              width: '78px', 
-              height: '78px', 
+              width: '68px', 
+              height: '68px', 
               objectFit: 'contain', 
               zIndex: 1,
-              transform: 'translateY(10px)' /* Center it vertically on the visual mass of the taller triangle */
+              transform: 'translateY(6px)' /* Center it vertically relative to visual mass */
             }} 
           />
         </div>
