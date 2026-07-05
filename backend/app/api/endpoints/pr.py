@@ -303,23 +303,35 @@ async def audit_repository_pr(payload: AuditRepoRequest):
         before_url = None
         after_url = None
 
-        image_pattern = r'!\[.*?\]\((https?://.*?)\)'
-        images = re.findall(image_pattern, pr_body)
-        if len(images) < 2:
-            url_pattern = r'(https?://[^\s)]+\.(?:png|jpg|jpeg|gif))'
-            found_urls = re.findall(url_pattern, pr_body)
-            for url in found_urls:
-                if url not in images:
-                    images.append(url)
+        # Extract markdown images: ![alt](url)
+        md_matches = re.findall(r'!\[.*?\]\((https?://[^\s)]+)\)', pr_body)
+        # Extract HTML image source links: <img src="url" ...>
+        html_matches = re.findall(r'<img[^>]+src=["\'](https?://[^"\']+)["\']', pr_body)
+        # Extract markdown links: [text](url) where the URL contains assets or attachments
+        link_matches = re.findall(r'\[.*?\]\((https?://[^\s)]+)\)', pr_body)
+        asset_links = [l for l in link_matches if 'assets' in l or 'user-attachments' in l]
+
+        # Extract generic raw URLs containing user-attachments/assets
+        raw_assets = re.findall(r'(https?://github\.com/user-attachments/assets/[a-f0-9-]+)', pr_body)
+
+        # Combine all found URLs preserving order
+        all_found = md_matches + html_matches + asset_links + raw_assets
+        seen = set()
+        images = []
+        for url in all_found:
+            if url not in seen:
+                seen.add(url)
+                images.append(url)
+
         before_url = images[0] if len(images) > 0 else None
         after_url = images[1] if len(images) > 1 else None
 
         # Hackathon Demo fallback: if no screenshots are attached to the PR,
         # serve premium default design comparison mockup screenshots so the visual diff slider always displays.
         if not before_url:
-            before_url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
+            before_url = "http://localhost:7860/static/screenshots/ecommerce_before.png"
         if not after_url:
-            after_url = "https://images.unsplash.com/photo-1618005198143-e528346d9a59?w=800&auto=format&fit=crop&q=80"
+            after_url = "http://localhost:7860/static/screenshots/ecommerce_after.png"
         
         # Trigger the full Reviewly audit pipeline
         ai_summary = groq_service.summarize_diff(git_diff)
