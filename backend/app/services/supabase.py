@@ -58,4 +58,28 @@ class SupabaseService:
         response = self.client.table("pr_audits").update(update_data).eq("id", audit_id).execute()
         return response.data[0] if response.data else None
 
+    def update_audit_fields(
+        self,
+        audit_id: str,
+        title: str,
+        author: str,
+        git_diff: str,
+        before_screenshot_url: str,
+        after_screenshot_url: str,
+        ai_summary: str,
+        ai_risks: str
+    ) -> Optional[Dict[str, Any]]:
+        update_data = {
+            "title": title,
+            "author": author,
+            "git_diff": git_diff,
+            "before_screenshot_url": before_screenshot_url,
+            "after_screenshot_url": after_screenshot_url,
+            "ai_summary": ai_summary,
+            "ai_risks": ai_risks,
+            "status": "pending_review"
+        }
+        response = self.client.table("pr_audits").update(update_data).eq("id", audit_id).execute()
+        return response.data[0] if response.data else None
+
 supabase_service = SupabaseService()

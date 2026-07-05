@@ -257,10 +257,7 @@ async def audit_repository_pr(payload: AuditRepoRequest):
             open_prs = list_resp.json()
             for pr in open_prs:
                 num = pr["number"]
-                # Check if already audited in Supabase
-                existing = supabase_service.get_audit_by_number(repository, num, user_email)
-                if not existing:
-                    prs_to_audit.append(num)
+                prs_to_audit.append(num)
         else:
             prs_to_audit.append(pr_number)
             
@@ -342,23 +339,52 @@ async def audit_repository_pr(payload: AuditRepoRequest):
         )
         final_summary = f"{ai_summary}\n\n*Visual Updates:*\n{visual_changes}"
         
-        # Write record to Supabase
+        # Write record to Supabase (Insert new or Update existing)
         try:
-            audit = supabase_service.create_audit(
-                pr_number=num,
-                title=title,
-                author=author,
-                repository=repository,
-                git_diff=git_diff,
-                before_screenshot_url=before_url,
-                after_screenshot_url=after_url,
-                ai_summary=final_summary,
-                ai_risks=ai_risks,
-                user_email=user_email
-            )
+            existing = supabase_service.get_audit_by_number(repository, num, user_email)
+            if existing:
+                audit = supabase_service.update_audit_fields(
+                    audit_id=existing["id"],
+                    title=title,
+                    author=author,
+                    git_diff=git_diff,
+                    before_screenshot_url=before_url,
+                    after_screenshot_url=after_url,
+                    ai_summary=final_summary,
+                    ai_risks=ai_risks
+                )
+            else:
+                audit = supabase_service.create_audit(
+                    pr_number=num,
+                    title=title,
+                    author=author,
+                    repository=repository,
+                    git_diff=git_diff,
+                    before_screenshot_url=before_url,
+                    after_screenshot_url=after_url,
+                    ai_summary=final_summary,
+                    ai_risks=ai_risks,
+                    user_email=user_email
+                )
         except Exception as e:
             if "duplicate" in str(e) or "23505" in str(e):
-                audit = supabase_service.get_audit_by_number(repository, num, user_email)
+                try:
+                    existing_fallback = supabase_service.get_audit_by_number(repository, num, user_email)
+                    if existing_fallback:
+                        audit = supabase_service.update_audit_fields(
+                            audit_id=existing_fallback["id"],
+                            title=title,
+                            author=author,
+                            git_diff=git_diff,
+                            before_screenshot_url=before_url,
+                            after_screenshot_url=after_url,
+                            ai_summary=final_summary,
+                            ai_risks=ai_risks
+                        )
+                    else:
+                        continue
+                except Exception:
+                    continue
             else:
                 continue
                 
