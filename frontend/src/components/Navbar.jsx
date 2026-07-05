@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Bell, LogOut } from 'lucide-react';
 
 export default function Navbar({
@@ -12,11 +12,29 @@ export default function Navbar({
   notifications,
   handleSignOut
 }) {
+  const navProfileRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (navProfileRef.current && !navProfileRef.current.contains(event.target)) {
+        setIsNotificationsOpen(false);
+        setIsProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [setIsNotificationsOpen, setIsProfileOpen]);
+
   return (
-    <header className="navbar glass-panel">
+    <header className={`navbar ${user ? 'glass-panel' : ''}`} style={!user ? { border: 'none', background: 'transparent', boxShadow: 'none' } : {}}>
       <div className="brand">
-        <div className="brand-logo">&lt;R&gt;</div>
-        <span>Reviewly</span>
+        <img 
+          src="/logo.png" 
+          alt="Reviewly Logo" 
+          style={{ height: '34px', width: 'auto', objectFit: 'contain' }} 
+        />
       </div>
       
       {user && (
@@ -54,7 +72,7 @@ export default function Navbar({
         </nav>
       )}
 
-      <div className="nav-profile">
+      <div className="nav-profile" ref={navProfileRef}>
         {user && (
           <>
             {/* Notification bell */}

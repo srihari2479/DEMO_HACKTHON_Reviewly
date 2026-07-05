@@ -1,3 +1,4 @@
+//app.jsx
 import React, { useState, useEffect } from 'react';
 import { supabase, BACKEND_URL } from './services/supabase';
 
@@ -13,33 +14,7 @@ import History from './pages/History';
 import Settings from './pages/Settings';
 import Repositories from './pages/Repositories';
 
-// Fallback seed data in case Supabase is blank
-const SEED_AUDITS = [
-  {
-    id: "502d3641-abbf-4bfc-b478-40c43e4a9b64",
-    pr_number: 104,
-    title: "Redesign Login and Add Google OAuth",
-    author: "dev_sarah",
-    repository: "Reviewly/frontend",
-    status: "pending_review",
-    git_diff: `diff --git a/components/Login.js b/components/Login.js
-index 838afd..92fa1b 100644
---- a/components/Login.js
-+++ b/components/Login.js
-@@ -10,6 +10,12 @@ export default function Login() {
-       <button className="bg-indigo-600 text-white">Sign In</button>
-+      <button className="bg-blue-500 text-white flex items-center">
-+        <img src="/google-icon.svg" /> Sign in with Google
-+      </button>
-+      <a href="/signup" className="text-gray-500 mt-8">Don''t have an account? Sign Up</a>`,
-    before_screenshot_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600",
-    after_screenshot_url: "https://images.unsplash.com/photo-1618005198143-e528346d9a59?w=600",
-    ai_summary: "* Added a blue Google Sign-In button, allowing users to authenticate via Google.\n* Repositioned container spacing and modified margin elements.\n* Inserted a link for signup below the primary login forms.",
-    ai_risks: "* Text Typo/Display Error: The link contains an escaped double single quote \"Don''t\" which displays incorrectly.\n* Button Color Inconsistency: The new blue Google button contrast differs from the existing dark button layout.",
-    reviewer_comments: null,
-    created_at: new Date(Date.now() - 3600000).toISOString()
-  }
-];
+
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -61,6 +36,7 @@ export default function App() {
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(true);
   const [simLogs, setSimLogs] = useState([]);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isConsoleModalOpen, setIsConsoleModalOpen] = useState(false);
 
   // Real-time repository selection states
   const [repos, setRepos] = useState([]);
@@ -75,6 +51,7 @@ export default function App() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const providerToken = session?.provider_token;
+      const githubUsername = session?.user?.user_metadata?.user_name;
       
       if (!providerToken) {
         setErrorRepos("GitHub Access Token not found. Login again.");
@@ -91,17 +68,24 @@ export default function App() {
       
       const data = await response.json();
       if (Array.isArray(data)) {
-        const formatted = data.map(r => ({
-          id: r.id,
-          name: r.name,
-          owner: r.owner.login,
-          fullName: `${r.owner.login}/${r.name}`,
-          stars: r.stargazers_count,
-          forks: r.forks_count,
-          monitored: r.name.toLowerCase().includes('reviewly') || r.name.toLowerCase().includes('hackthon'),
-          language: r.language || 'HTML',
-          url: r.html_url
-        }));
+        const formatted = data
+          .map(r => ({
+            id: r.id,
+            name: r.name,
+            owner: r.owner.login,
+            fullName: `${r.owner.login}/${r.name}`,
+            stars: r.stargazers_count,
+            forks: r.forks_count,
+            monitored: r.name.toLowerCase().includes('reviewly') || r.name.toLowerCase().includes('hackthon'),
+            language: r.language || 'HTML',
+            url: r.html_url
+          }))
+          .filter(r => {
+            // Filter to show only repos owned by the logged-in GitHub user
+            if (!githubUsername) return true;
+            return r.owner.toLowerCase() === githubUsername.toLowerCase();
+          });
+          
         setRepos(formatted);
         if (formatted.length > 0) {
           setSelectedRepo(formatted[0].fullName);
@@ -168,10 +152,10 @@ export default function App() {
     setIsProfileOpen(false);
   };
 
-  // 2. Fetch audits from backend API
+  // 2. Fetch audits from backend API whenever user details change
   useEffect(() => {
     fetchAudits();
-  }, []);
+  }, [user]);
 
   // 3. Connect Supabase Realtime to update dashboard lists automatically on insert/update
   useEffect(() => {
@@ -190,29 +174,35 @@ export default function App() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]); // Re-subscribe if user changes
 
   const fetchAudits = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/pr/list`);
+      const url = user?.email
+        ? `${BACKEND_URL}/api/pr/list?user_email=${encodeURIComponent(user.email)}`
+        : `${BACKEND_URL}/api/pr/list`;
+      const response = await fetch(url);
       const data = await response.json();
       if (data.status === "success") {
         setAudits(data.data);
-        if (data.data.length > 0) {
-          // Retain selection if valid, else select first
-          setSelectedAuditId(prevId => {
-            return data.data.some(a => a.id === prevId) ? prevId : data.data[0].id;
-          });
-        } else {
-          setSelectedAuditId(null);
-        }
+        
+        // Retain selection if valid, else select first
+        setSelectedAuditId(prevId => {
+          return data.data.some(a => a.id === prevId) ? prevId : (data.data[0]?.id || null);
+        });
       }
     } catch (e) {
       console.warn("Backend API not reachable.", e);
     }
   };
 
-  const activeAudit = audits.find(a => a.id === selectedAuditId) || audits[0];
+  const userAudits = (repos.length === 0 && loadingRepos)
+    ? audits
+    : audits.filter(audit => 
+        repos.some(repo => repo.fullName.toLowerCase() === audit.repository.toLowerCase())
+      );
+
+  const activeAudit = userAudits.find(a => a.id === selectedAuditId) || userAudits[0];
 
   // Post reviewer approval/rejection to FastAPI backend
   const handleReviewSubmit = async (status) => {
@@ -247,53 +237,78 @@ export default function App() {
   };
 
   const triggerSimulation = async () => {
-    setIsSimulating(true);
-    setSimLogs([
-      `🚀 [Console] Connecting to GitHub API for repository: ${selectedRepo}...`,
-      `📦 [Console] Locating Pull Request #${prNumber}...`,
-      `📡 [Console] Fetching raw code patch & metadata from GitHub...`
-    ]);
-
-    const payload = {
-      repository: selectedRepo,
-      pr_number: parseInt(prNumber)
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    const getLogTime = () => new Date().toLocaleTimeString('en-US', { hour12: false });
+    const appendLog = (message) => {
+      setSimLogs(prev => [...prev, { time: getLogTime(), message }]);
     };
 
+    setIsConsoleModalOpen(true);
+    setIsSimulating(true);
+    setSimLogs([]); // Clear logs initially
+    
+    // Line 1:
+    appendLog(`🚀 Connecting to GitHub API for repository: ${selectedRepo}...`);
+    await sleep(600);
+    
+    // Line 2:
+    appendLog("📡 Querying all active open Pull Requests...");
+    await sleep(600);
+    
+    // Line 3:
+    appendLog("📡 Checking for un-audited updates...");
+    await sleep(600);
+    
+    // Line 4:
+    appendLog("🤖 Querying Groq Llama-3.3 diff summarizers...");
+    await sleep(600);
+    
+    // Line 5:
+    appendLog("📸 Querying Gemini 2.5 UI auditors...");
+
+    // Trigger API call in parallel with user email for database chain isolation
+    const payload = { 
+      repository: selectedRepo,
+      user_email: user?.email || ""
+    };
+    const apiPromise = fetch(`${BACKEND_URL}/api/pr/audit-repo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
     try {
-      setSimLogs(prev => [...prev, "🤖 [Console] Querying Groq Llama-3.3 diff summarizer..."]);
-      setSimLogs(prev => [...prev, "📸 [Console] Querying Gemini 2.5 multimodal UI auditor..."]);
-      
-      const response = await fetch(`${BACKEND_URL}/api/pr/audit-repo`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      
+      // Wait for the API request to complete
+      const response = await apiPromise;
       const data = await response.json();
+      
+      // Delay to maintain the clean pacing
+      await sleep(600);
+      
       if (data.status === "success") {
-        setSimLogs(prev => [
-          ...prev,
-          "💾 [Console] PR Audit successfully saved in Supabase database!",
-          "💬 [Console] Slack card alert successfully broadcast!",
-          "🎉 [Console] Live audit execution complete!"
-        ]);
+        // Line 6:
+        appendLog(`💾 Sync status: ${data.message}`);
+        await sleep(600);
+        
+        // Line 7:
+        appendLog("🎉 Live audit execution complete!");
         
         await fetchAudits();
         
-        setTimeout(() => {
-          setSelectedAuditId(data.audit.id);
-          setActiveTab('dashboard');
-        }, 500);
+        if (data.audits && data.audits.length > 0) {
+          setTimeout(() => {
+            setSelectedAuditId(data.audits[0].id);
+            setActiveTab('dashboard');
+          }, 1000);
+        }
       } else {
-        const errorDetail = data.detail || "Failed to fetch PR details from GitHub.";
-        setSimLogs(prev => [...prev, `❌ Error: ${errorDetail}`]);
-        alert(`Audit Trigger Failed: ${errorDetail}\n\nHint: Verify that the repo name is correct and the PR number exists on GitHub!`);
+        const errorDetail = data.detail || "Failed to sync PR details from GitHub.";
+        appendLog(`❌ Error: ${errorDetail}`);
+        alert(`Audit Trigger Failed: ${errorDetail}\n\nHint: Verify that the repo name is correct and accessible.`);
       }
     } catch (e) {
-      setSimLogs(prev => [
-        ...prev,
-        "❌ Connection Error: Backend API not reachable. Ensure uvicorn is running on port 7860."
-      ]);
+      await sleep(600);
+      appendLog("❌ Connection Error: Backend API not reachable. Ensure uvicorn is running on port 7860.");
       alert("Simulation failed: Unable to connect to the FastAPI backend. Check if uvicorn is running.");
     } finally {
       setIsSimulating(false);
@@ -329,44 +344,49 @@ export default function App() {
       ) : (
         /* Authenticated Main Tabs */
         <main>
-          {/* Dev Simulator Panel Header */}
-          <SimulatorConsole 
-            isSimulatorOpen={isSimulatorOpen}
-            setIsSimulatorOpen={setIsSimulatorOpen}
-            isSimulating={isSimulating}
-            triggerSimulation={triggerSimulation}
-            simLogs={simLogs}
-            repos={repos}
-            selectedRepo={selectedRepo}
-            setSelectedRepo={setSelectedRepo}
-            prNumber={prNumber}
-            setPrNumber={setPrNumber}
-          />
-
           {activeTab === 'dashboard' && (
-            <Dashboard 
-              audits={audits}
-              selectedAuditId={selectedAuditId}
-              setSelectedAuditId={setSelectedAuditId}
-              activeAudit={activeAudit}
-              sliderPosition={sliderPosition}
-              setSliderPosition={setSliderPosition}
-              setActiveTab={setActiveTab}
-            />
+            <>
+              <SimulatorConsole 
+                isSimulatorOpen={isSimulatorOpen}
+                setIsSimulatorOpen={setIsSimulatorOpen}
+                isSimulating={isSimulating}
+                triggerSimulation={triggerSimulation}
+                simLogs={simLogs}
+                repos={repos}
+                selectedRepo={selectedRepo}
+                setSelectedRepo={setSelectedRepo}
+                isConsoleModalOpen={isConsoleModalOpen}
+                setIsConsoleModalOpen={setIsConsoleModalOpen}
+              />
+              <Dashboard 
+                audits={userAudits}
+                selectedAuditId={selectedAuditId}
+                setSelectedAuditId={setSelectedAuditId}
+                activeAudit={activeAudit}
+                sliderPosition={sliderPosition}
+                setSliderPosition={setSliderPosition}
+                setActiveTab={setActiveTab}
+              />
+            </>
           )}
 
           {activeTab === 'prs' && (
             <PRDetails 
+              audits={userAudits}
+              selectedAuditId={selectedAuditId}
+              setSelectedAuditId={setSelectedAuditId}
               activeAudit={activeAudit}
               reviewComments={reviewComments}
               setReviewComments={setReviewComments}
               handleReviewSubmit={handleReviewSubmit}
+              sliderPosition={sliderPosition}
+              setSliderPosition={setSliderPosition}
             />
           )}
 
           {activeTab === 'history' && (
             <History 
-              audits={audits}
+              audits={userAudits}
               statusFilter={statusFilter}
               setStatusFilter={setStatusFilter}
               searchQuery={searchQuery}

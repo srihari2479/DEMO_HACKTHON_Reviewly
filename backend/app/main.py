@@ -23,8 +23,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.staticfiles import StaticFiles
+
+# Ensure static screenshot directory is present
+os.makedirs("app/static/screenshots", exist_ok=True)
+
 # Register routers
 app.include_router(pr.router)
+
+# Mount static folder path
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.get("/")
 def read_root():
