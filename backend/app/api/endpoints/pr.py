@@ -221,8 +221,6 @@ class AuditRepoRequest(BaseModel):
     repository: str
     pr_number: Optional[int] = None
     user_email: str
-    reference_url: Optional[str] = None
-    preview_url: Optional[str] = None
 
 @router.post("/audit-repo")
 async def audit_repository_pr(payload: AuditRepoRequest):
@@ -232,8 +230,6 @@ async def audit_repository_pr(payload: AuditRepoRequest):
     repository = payload.repository
     pr_number = payload.pr_number
     user_email = payload.user_email
-    reference_url = payload.reference_url
-    preview_url = payload.preview_url
     
     headers = {
         "User-Agent": "Reviewly-Auditor"
@@ -303,39 +299,27 @@ async def audit_repository_pr(payload: AuditRepoRequest):
         except Exception:
             continue
             
-        # Determine before/after screenshots
+        # 2. Extract before/after screenshots from PR body description
         before_url = None
         after_url = None
 
-        # Capture dynamic screenshots via Playwright if website URLs are passed
-        if reference_url and preview_url:
-            try:
-                unique_id = str(uuid.uuid4())
-                before_path = f"app/static/screenshots/{unique_id}_before.png"
-                after_path = f"app/static/screenshots/{unique_id}_after.png"
-                
-                before_ok = playwright_service.capture_screenshot(reference_url, before_path)
-                after_ok = playwright_service.capture_screenshot(preview_url, after_path)
-                
-                if before_ok and after_ok:
-                    # Point to local static server path
-                    before_url = f"http://localhost:7860/static/screenshots/{unique_id}_before.png"
-                    after_url = f"http://localhost:7860/static/screenshots/{unique_id}_after.png"
-            except Exception as capture_err:
-                print(f"[Audit] Playwright capture error: {str(capture_err)}")
+        image_pattern = r'!\[.*?\]\((https?://.*?)\)'
+        images = re.findall(image_pattern, pr_body)
+        if len(images) < 2:
+            url_pattern = r'(https?://[^\s)]+\.(?:png|jpg|jpeg|gif))'
+            found_urls = re.findall(url_pattern, pr_body)
+            for url in found_urls:
+                if url not in images:
+                    images.append(url)
+        before_url = images[0] if len(images) > 0 else None
+        after_url = images[1] if len(images) > 1 else None
 
-        # Fallback to parsing image urls from PR body description if Playwright was bypassed or failed
-        if not before_url or not after_url:
-            image_pattern = r'!\[.*?\]\((https?://.*?)\)'
-            images = re.findall(image_pattern, pr_body)
-            if len(images) < 2:
-                url_pattern = r'(https?://[^\s)]+\.(?:png|jpg|jpeg|gif))'
-                found_urls = re.findall(url_pattern, pr_body)
-                for url in found_urls:
-                    if url not in images:
-                        images.append(url)
-            before_url = images[0] if len(images) > 0 else before_url
-            after_url = images[1] if len(images) > 1 else after_url
+        # Hackathon Demo fallback: if no screenshots are attached to the PR,
+        # serve premium default design comparison mockup screenshots so the visual diff slider always displays.
+        if not before_url:
+            before_url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
+        if not after_url:
+            after_url = "https://images.unsplash.com/photo-1618005198143-e528346d9a59?w=800&auto=format&fit=crop&q=80"
         
         # Trigger the full Reviewly audit pipeline
         ai_summary = groq_service.summarize_diff(git_diff)

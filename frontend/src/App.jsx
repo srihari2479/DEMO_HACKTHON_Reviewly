@@ -44,8 +44,6 @@ export default function App() {
   const [prNumber, setPrNumber] = useState(1);
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [errorRepos, setErrorRepos] = useState(null);
-  const [referenceUrl, setReferenceUrl] = useState("https://playwright.dev");
-  const [previewUrl, setPreviewUrl] = useState("http://localhost:5173");
 
   const fetchGitHubRepos = async () => {
     setLoadingRepos(true);
@@ -268,12 +266,10 @@ export default function App() {
     // Line 5:
     appendLog("📸 Querying Gemini 2.5 UI auditors...");
 
-    // Trigger API call in parallel with user email and website URLs for live Playwright capture
+    // Trigger API call in parallel with user email for database chain isolation
     const payload = { 
       repository: selectedRepo,
-      user_email: user?.email || "",
-      reference_url: referenceUrl,
-      preview_url: previewUrl
+      user_email: user?.email || ""
     };
     const apiPromise = fetch(`${BACKEND_URL}/api/pr/audit-repo`, {
       method: "POST",
@@ -361,10 +357,6 @@ export default function App() {
                 setSelectedRepo={setSelectedRepo}
                 isConsoleModalOpen={isConsoleModalOpen}
                 setIsConsoleModalOpen={setIsConsoleModalOpen}
-                referenceUrl={referenceUrl}
-                setReferenceUrl={setReferenceUrl}
-                previewUrl={previewUrl}
-                setPreviewUrl={setPreviewUrl}
               />
               <Dashboard 
                 audits={userAudits}
