@@ -3,6 +3,19 @@ import React, { useRef } from 'react';
 export default function DiffSlider({ beforeUrl, afterUrl, sliderPosition, setSliderPosition }) {
   const sliderRef = useRef(null);
 
+  // Append static cache buster version to force browser cache bypass on new mockup images
+  const getBustedUrl = (url) => {
+    if (!url) return '';
+    if (url.includes('localhost:') || url.includes('127.0.0.1:')) {
+      const buster = 'v=hackathon_v3';
+      return url.includes('?') ? `${url}&${buster}` : `${url}?${buster}`;
+    }
+    return url;
+  };
+
+  const beforeBusted = getBustedUrl(beforeUrl);
+  const afterBusted = getBustedUrl(afterUrl);
+
   const handleSliderMove = (clientX) => {
     if (!sliderRef.current) return;
     const rect = sliderRef.current.getBoundingClientRect();
@@ -33,14 +46,14 @@ export default function DiffSlider({ beforeUrl, afterUrl, sliderPosition, setSli
     >
       {/* Before Screenshot */}
       <img 
-        src={beforeUrl} 
+        src={beforeBusted} 
         className="slider-image-before" 
         alt="Staging UI Before" 
       />
       
       {/* After Screenshot with clip-path polygon overlay */}
       <img 
-        src={afterUrl} 
+        src={afterBusted} 
         className="slider-image-after" 
         style={{ 
           clipPath: `polygon(${sliderPosition}% 0, 100% 0, 100% 100%, ${sliderPosition}% 100%)` 
